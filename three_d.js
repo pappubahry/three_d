@@ -1,4 +1,5 @@
 /* Hello and welcome to my JavaScript.  This is version 0 of three_d.js.
+ * It assumes r81 of three.js.
  * 
  * The first part of this file are some d3.js modules.
  * 
