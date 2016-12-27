@@ -1,13 +1,13 @@
-/* Hello and welcome to my JavaScript.  This is version 1 of
+/* Hello and welcome to my JavaScript.  This is version 1.1 of
  * three_d.js. It assumes r81 of three.js.
  * 
  * The first part of this file are some d3.js modules.
  * 
  * Most of the early functions in my code handle the mouse and touch
- * events -- rotating, panning, raycasting, etc.  I am not happy that
- * I carry around redundant information about the camera's location and
- * orientation, but otherwise I think that part of the code is
- * reasonable, and I learned how to use quaternions while writing it.
+ * events -- rotating, panning, raycasting, etc.  I learned how to use
+ * quaternions while writing the rotation code, and as of v1.1 it's
+ * pretty clean -- no longer a fudged together saga involving
+ * arbitrarily-signed angles.
  * 
  * The creation of the plots themselves is a fairly disorganised mess,
  * caused by me only deciding to allow transitions between data values
@@ -22,7 +22,7 @@
  * 
  * It hangs together, just....
  * 
- * David Barry, 2016-12-22.
+ * David Barry, 2016-12-27.
  */
 
 
@@ -728,7 +728,7 @@ var mouse_zoom = function(event, i_plot) {
 			// Orthographic.
 			// Playing fast and loose with "width" and "height" notation here.
 			var height = 2*plots[i_plot].ortho_camera.top;
-			var width = 2*plots[i_plot].ortho_camera.right;
+			var width  = 2*plots[i_plot].ortho_camera.right;
 			
 			var base_y = (event.clientY - bounding_rect.top - plots[i_plot].mid_y);
 			var base_x = (event.clientX - bounding_rect.left - plots[i_plot].mid_x);
@@ -828,7 +828,12 @@ var mouse_zoom = function(event, i_plot) {
 		}
 		
 		get_current_camera(i_plot).updateProjectionMatrix();
-		plots[i_plot].renderer.render(plots[i_plot].scene, get_current_camera(i_plot));
+		
+		if (plots[i_plot].show_grid) {
+			update_gridlines(i_plot);
+		}
+		
+		update_render(i_plot);
 	}
 	
 	if (typeof event.preventDefault === "function") { event.preventDefault(); }
@@ -856,125 +861,48 @@ var mouse_move_fn = function(event, i_plot) {
 	// may have something to do with all the negative
 	// latitudes in my quaternion definitions.
 	var delta_x = -event.clientX + plots[i_plot].click_start_x;
-	var delta_y = event.clientY - plots[i_plot].click_start_y;
+	var delta_y =  event.clientY - plots[i_plot].click_start_y;
 	
 	set_normed_mouse_coords(event, i_plot);
-	
-	var perc_horiz = plots[i_plot].mouse.x;
-	var perc_vert = -plots[i_plot].mouse.y;
-	
-	var start_lon = plots[i_plot].camera_lonlat[0];
-	var start_lat = plots[i_plot].camera_lonlat[1];
-	var start_psi = plots[i_plot].camera_rot;
 	
 	var i;
 	
 	if (plots[i_plot].mouse_operation == "rotate") {
+		var perc_horiz =  plots[i_plot].mouse.x;
+		var perc_vert  = -plots[i_plot].mouse.y;
+		
 		var delta_lat = delta_y * (tau/2) * (1 - Math.abs(perc_horiz)) / plots[i_plot].height;
 		var delta_lon = delta_x * (tau/2) * (1 - Math.abs(perc_vert)) / plots[i_plot].width;
 		var delta_psi = delta_y * (tau/2) * perc_horiz / plots[i_plot].width +
 						delta_x * (tau/2) * perc_vert / plots[i_plot].height;
 		
-		
-		var base_quat = new THREE.Quaternion()
-			.setFromEuler(new THREE.Euler(-start_lat, start_lon, start_psi, "YXZ"))
-			.premultiply(plots[i_plot].aux_camera_quat);
-		
 		var change_quat = new THREE.Quaternion()
-			.setFromEuler(new THREE.Euler(-delta_lat, delta_lon, delta_psi, "YXZ"))
-			.premultiply(base_quat);
+			.setFromEuler(get_current_camera(i_plot).rotation)
+			.multiply(
+				new THREE.Quaternion()
+					.setFromEuler(new THREE.Euler(-delta_lat, delta_lon, delta_psi, "YXZ"))
+				);
 		
-		var old_posn_quat = new THREE.Quaternion()
-			.setFromEuler(new THREE.Euler(start_psi, -start_lat, start_lon, "ZYX"));
-		
-		var new_posn_quat = new THREE.Quaternion()
-			.setFromEuler(new THREE.Euler(0, -delta_lat, delta_lon, "ZYX"))
-			.premultiply(old_posn_quat);
-		
-		var new_posn_vec = new THREE.Vector3(1, 0, 0)
-			.applyQuaternion(new_posn_quat);
-		
-		var r = plots[i_plot].camera_r;
-		new_posn_vec.multiplyScalar(r);
-		
-		var new_theta = Math.asin(new_posn_vec.z / r);
-		var new_phi;
-		
-		if (Math.abs(new_posn_vec.z / r) >= 1) {
-			// Over a pole up to round-off error.
-			new_phi = start_lon;
-		} else {
-			new_phi = Math.atan2(new_posn_vec.y, new_posn_vec.x);
-		}
-		
-		plots[i_plot].camera_lonlat[0] = new_phi;
-		plots[i_plot].camera_lonlat[1] = new_theta;
+		get_current_camera(i_plot).position
+			.set(0, 0, 1)
+			.applyQuaternion(change_quat)
+			.multiplyScalar(plots[i_plot].camera_r)
+			.add(plots[i_plot].camera_origin);
 		
 		plots[i_plot].camera_up = new THREE.Vector3(0, 1, 0)
 			.applyQuaternion(change_quat);
 		
-		var test_quat = new THREE.Quaternion()
-			.setFromEuler(new THREE.Euler(-new_theta, new_phi, 0, "YXZ"))
-			.premultiply(plots[i_plot].aux_camera_quat);
+		get_current_camera(i_plot).rotation.setFromQuaternion(change_quat);
 		
-		var test_up = new THREE.Vector3(0, 1, 0)
-			.applyQuaternion(test_quat);
-		
-		var new_psi = plots[i_plot].camera_up.angleTo(test_up);
-		
-		plots[i_plot].camera_rot = new_psi;
-		
-		get_current_camera(i_plot).position
-			.copy(new_posn_vec);
-			
-		var this_quat = new THREE.Quaternion()
-			.setFromEuler(new THREE.Euler(-new_theta, new_phi, new_psi, "YXZ"))
-			.premultiply(plots[i_plot].aux_camera_quat);
-		
-		get_current_camera(i_plot).rotation.setFromQuaternion(this_quat);
-		
-		var post_rot_up_check = new THREE.Vector3(0, 1, 0)
-			.applyQuaternion(this_quat);
-		
-		
-		var rot_angle_check = post_rot_up_check.angleTo(plots[i_plot].camera_up);
-		if (Math.abs(rot_angle_check) > 1e-6) {
-			if (Math.abs(rot_angle_check) - 2*Math.abs(new_psi) < 1e-6) {
-				//console.log("~~~Fudging the psi angle~~~");
-				plots[i_plot].camera_rot *= -1;
-				
-				var this_quat = new THREE.Quaternion()
-					.setFromEuler(new THREE.Euler(-new_theta, new_phi, -new_psi, "YXZ"))
-					.premultiply(plots[i_plot].aux_camera_quat);
-				
-				get_current_camera(i_plot).rotation.setFromQuaternion(this_quat);
-				
-				var post_rot_up_check = new THREE.Vector3(0, 1, 0)
-					.applyQuaternion(this_quat);
-				
-				rot_angle_check = post_rot_up_check.angleTo(plots[i_plot].camera_up);
+		if (plots[i_plot].plot_type == "scatter") {
+			if (plots[i_plot].geom_type == "quad") {
+				for (i = 0; i < plots[i_plot].points.length; i++) {
+					plots[i_plot].points[i].rotation.copy(get_current_camera(i_plot).rotation);
+				}
 			}
-		}
-		
-		if (Math.abs(rot_angle_check) > 1e-6) {
-			console.warn("CHECK ANGLE ERROR:");
-			console.warn([post_rot_up_check.x, post_rot_up_check.y, post_rot_up_check.z].join());
-			console.warn(post_rot_up_check.angleTo(plots[i_plot].camera_up));
-		}
-		
-		var camera_up_dot = plots[i_plot].camera_up.dot(get_current_camera(i_plot).position);
-		var test_up_dot = test_up.dot(get_current_camera(i_plot).position);
-		var post_check_dot = post_rot_up_check.dot(get_current_camera(i_plot).position);
-		
-		if (Math.abs(camera_up_dot) > 1e-6) { console.warn("ERROR camera_up_dot: " + camera_up_dot); }
-		if (Math.abs(test_up_dot) > 1e-6) { console.warn("ERROR test_up_dot: " + test_up_dot); }
-		if (Math.abs(post_check_dot) > 1e-6) { console.warn("ERROR post_check_dot: " + post_check_dot); }
-		
-		get_current_camera(i_plot).position.add(plots[i_plot].camera_origin);
-		
-		if (plots[i_plot].geom_type == "quad") {
-			for (i = 0; i < plots[i_plot].points.length; i++) {
-				plots[i_plot].points[i].rotation.copy(get_current_camera(i_plot).rotation);
+			
+			if (plots[i_plot].have_any_labels) {
+				update_labels(i_plot);
 			}
 		}
 		
@@ -986,10 +914,6 @@ var mouse_move_fn = function(event, i_plot) {
 			plots[i_plot].tick_text_planes[i].rotation.copy(get_current_camera(i_plot).rotation);
 		}
 		
-		if (plots[i_plot].have_any_labels) {
-			update_labels(i_plot);
-		}
-		
 		if (plots[i_plot].show_grid) {
 			update_gridlines(i_plot);
 		}
@@ -998,7 +922,7 @@ var mouse_move_fn = function(event, i_plot) {
 			update_axes(i_plot);
 		}
 		
-		plots[i_plot].renderer.render(plots[i_plot].scene, get_current_camera(i_plot));
+		update_render(i_plot);
 	} else if (plots[i_plot].mouse_operation == "pan") {
 		// Moving the mouse upwards will pan in the direction of camera_up.
 		// Moving the mouse sideways will pan in the direction camera_up x camera.position
@@ -1509,9 +1433,9 @@ var update_gridlines = function(i_plot) {
 		// Orthographic -- only three faces should have a grid.
 		
 		var r_quat = new THREE.Quaternion()
-			.setFromEuler(new THREE.Euler(0, -plots[i_plot].camera_lonlat[1], plots[i_plot].camera_lonlat[0], "ZYX"));
+			.setFromEuler(get_current_camera(i_plot).rotation);
 		
-		var r = new THREE.Vector3(1, 0, 0)
+		var r = new THREE.Vector3(0, 0, 1)
 			.applyQuaternion(r_quat);
 		
 		for (i = 0; i < 3; i++) {
@@ -1960,57 +1884,34 @@ var reset_camera = function(i_plot, first_init, angles, origin) {
 	
 	var origin_vec = new THREE.Vector3(origin[0], origin[1], origin[2]);
 	
-	// The following mess of quaternions can almost certainly be
-	// simplified, but it's been a few days since I worked out
-	// how all this fits together.
-	
-	plots[i_plot].aux_camera_quat = new THREE.Quaternion()
-		.setFromEuler(new THREE.Euler(tau/4, 0, tau/4, "ZYX"));
-	
-	var init_quat = new THREE.Quaternion()
-		.setFromEuler(new THREE.Euler(0, -lat, lon, "ZYX"));
-	
 	var change_quat = new THREE.Quaternion()
-		.setFromEuler(new THREE.Euler(0, 0, psi, "YXZ"))
-		.premultiply(init_quat);
-	
-	var base_quat = new THREE.Quaternion()
-		.setFromEuler(new THREE.Euler(-lat, lon, 0, "YXZ"))
+		.setFromEuler(new THREE.Euler(-lat, lon, psi, "YXZ"))
 		.premultiply(plots[i_plot].aux_camera_quat);
 	
-	var change_quat = new THREE.Quaternion()
-		.setFromEuler(new THREE.Euler(0, 0, psi, "YXZ"))
-		.premultiply(base_quat);
+	plots[i_plot].persp_camera.rotation.setFromQuaternion(change_quat);
 	
 	plots[i_plot].camera_up = new THREE.Vector3(0, 1, 0)
 		.applyQuaternion(change_quat);
 	
-	var this_quat = new THREE.Quaternion()
-		.setFromEuler(new THREE.Euler(-lat, lon, psi, "YXZ"))
-		.premultiply(plots[i_plot].aux_camera_quat);
-	
-	plots[i_plot].persp_camera.position.copy(new THREE.Vector3(1, 0, 0)
-		.applyQuaternion(init_quat)
-		.multiplyScalar(plots[i_plot].camera_r))
+	plots[i_plot].persp_camera.position
+		.set(0, 0, 1)
+		.applyQuaternion(change_quat)
+		.multiplyScalar(plots[i_plot].camera_r)
 		.add(origin_vec);
-	
-	plots[i_plot].persp_camera.rotation.setFromQuaternion(this_quat);
 	
 	plots[i_plot].ortho_camera.position.copy(plots[i_plot].persp_camera.position);
 	plots[i_plot].ortho_camera.rotation.copy(plots[i_plot].persp_camera.rotation);
 	
-	plots[i_plot].camera_lonlat = [lon, lat];
-	plots[i_plot].camera_rot = psi;
 	plots[i_plot].camera_origin = new THREE.Vector3().copy(origin_vec);
 	
 	if (plots[i_plot].view_type == "perspective") {
 		plots[i_plot].persp_camera.fov = plots[i_plot].init_fov;
 	} else {
 		// Orthographic.
-		plots[i_plot].ortho_camera.top = plots[i_plot].init_ortho_top;
+		plots[i_plot].ortho_camera.top    =  plots[i_plot].init_ortho_top;
 		plots[i_plot].ortho_camera.bottom = -plots[i_plot].init_ortho_top;
-		plots[i_plot].ortho_camera.left = -plots[i_plot].init_ortho_right;
-		plots[i_plot].ortho_camera.right = plots[i_plot].init_ortho_right;
+		plots[i_plot].ortho_camera.left   = -plots[i_plot].init_ortho_right;
+		plots[i_plot].ortho_camera.right  =  plots[i_plot].init_ortho_right;
 	}
 	
 	if (!first_init) {
@@ -5843,13 +5744,12 @@ var basic_plot_setup = function(i_plot, params) {
 	
 	// Set up the camera(s).
 	
-	plots[i_plot].camera_lonlat = [-3*tau/8, tau/8];
+	plots[i_plot].init_lonlat = [-3*tau/8, tau/8];
 	if (params.hasOwnProperty("init_lonlat")) {
-		plots[i_plot].camera_lonlat = JSON.parse(JSON.stringify(params.init_lonlat));
+		plots[i_plot].init_lonlat = JSON.parse(JSON.stringify(params.init_lonlat));
 	}
 	
-	plots[i_plot].init_lonlat = JSON.parse(JSON.stringify(plots[i_plot].camera_lonlat));
-	plots[i_plot].camera_rot = params.hasOwnProperty("init_camera_rot") ? params.init_camera_rot : 0;
+	plots[i_plot].init_rot = params.hasOwnProperty("init_camera_rot") ? params.init_camera_rot : 0;
 	plots[i_plot].camera_r = params.hasOwnProperty("camera_r") ? params.camera_r : 5;
 	
 	plots[i_plot].camera_origin = new THREE.Vector3(0, 0, 0);
@@ -5915,10 +5815,13 @@ var basic_plot_setup = function(i_plot, params) {
 	plots[i_plot].persp_camera.rotation.order = "ZYX";
 	plots[i_plot].ortho_camera.rotation.order = "ZYX";
 	
+	plots[i_plot].aux_camera_quat = new THREE.Quaternion()
+		.setFromEuler(new THREE.Euler(tau/4, 0, tau/4, "ZYX"));
+	
 	reset_camera(
 		i_plot,
 		true,
-		[plots[i_plot].camera_lonlat[0], plots[i_plot].camera_lonlat[1], plots[i_plot].camera_rot],
+		[plots[i_plot].init_lonlat[0], plots[i_plot].init_lonlat[1], plots[i_plot].init_rot],
 		plots[i_plot].init_origin);
 	
 	
@@ -5973,7 +5876,7 @@ var basic_plot_listeners = function(i_plot, params) {
 			reset_camera_wrapper(
 				i_plot,
 				false,
-				[plots[i_plot].init_lonlat[0], plots[i_plot].init_lonlat[1], plots[i_plot].camera_rot],
+				[plots[i_plot].init_lonlat[0], plots[i_plot].init_lonlat[1], plots[i_plot].init_rot],
 				plots[i_plot].init_origin));
 		
 		document.getElementById("icon_three_d_scatter_snap_top_" + i_plot).addEventListener("click",
