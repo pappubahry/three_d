@@ -1,4 +1,4 @@
-/* Hello and welcome to my JavaScript.  This is version 1.1 of
+/* Hello and welcome to my JavaScript.  This is version 1.2 of
  * three_d.js. It assumes r81 of three.js.
  * 
  * The first part of this file are some d3.js modules.
@@ -22,7 +22,7 @@
  * 
  * It hangs together, just....
  * 
- * David Barry, 2016-12-27.
+ * David Barry, 2018-07-06.
  */
 
 
@@ -650,6 +650,22 @@ var mouse_up_fn = function(i_plot, from_mouseout) {
 	};
 }
 
+var pan_towards = function(i_plot, new_posn) {
+	var test_dist = new_posn.lengthSq();
+	if (test_dist > plots[i_plot].max_pan_dist_sq) {
+		new_posn.multiplyScalar(Math.sqrt(plots[i_plot].max_pan_dist_sq / test_dist));
+	}
+	
+	var dr = new THREE.Vector3()
+		.subVectors(new_posn, plots[i_plot].camera_origin);
+	
+	plots[i_plot].camera_origin
+		.add(dr);
+	
+	get_current_camera(i_plot).position
+		.add(dr);
+}
+
 var mouse_zoom_wrapper = function(i_plot) {
 	return function(event) {
 		mouse_zoom(event, i_plot);
@@ -689,8 +705,8 @@ var mouse_zoom = function(event, i_plot) {
 			if (phi_1 > tau/4) { phi_1 = 0.99*tau/4; }
 			if (phi_1 < -tau/4) { phi_1 = 0.99*tau/4; }
 			
-			var point_x_1 = plots[i_plot].camera_r * Math.tan(phi_1);
-			var point_y_1 = plots[i_plot].camera_r * Math.tan(theta_1) / Math.cos(phi_1);
+			var point_x_1 = plots[i_plot].camera_distance_scale * Math.tan(phi_1);
+			var point_y_1 = plots[i_plot].camera_distance_scale * Math.tan(theta_1) / Math.cos(phi_1);
 			
 			if (scroll_amount < 0) {
 				if (plots[i_plot].persp_camera.fov > plots[i_plot].min_fov) {
@@ -719,8 +735,8 @@ var mouse_zoom = function(event, i_plot) {
 			if (phi_2 > tau/4) { phi_2 = 0.99*tau/4; }
 			if (phi_2 < -tau/4) { phi_2 = 0.99*tau/4; }
 			
-			var point_x_2 = plots[i_plot].camera_r * Math.tan(phi_2);
-			var point_y_2 = plots[i_plot].camera_r * Math.tan(theta_2) / Math.cos(phi_2);
+			var point_x_2 = plots[i_plot].camera_distance_scale * Math.tan(phi_2);
+			var point_y_2 = plots[i_plot].camera_distance_scale * Math.tan(theta_2) / Math.cos(phi_2);
 			
 			var pan_x = -point_x_2 + point_x_1;
 			var pan_y = point_y_2 - point_y_1;
@@ -741,9 +757,9 @@ var mouse_zoom = function(event, i_plot) {
 			
 			if (scroll_amount < 0) {
 				temp_top = plots[i_plot].ortho_camera.top / zoom_factor;
-				theta = Math.atan2(temp_top, plots[i_plot].camera_r) * rad2deg * 2;
+				theta = Math.atan2(temp_top, plots[i_plot].camera_distance_scale) * rad2deg * 2;
 				if (theta < plots[i_plot].min_fov) {
-					temp_top = plots[i_plot].camera_r * Math.tan(plots[i_plot].min_fov / (2 * rad2deg));
+					temp_top = plots[i_plot].camera_distance_scale * Math.tan(plots[i_plot].min_fov / (2 * rad2deg));
 				}
 				
 				scale_ratio = temp_top / plots[i_plot].ortho_camera.top;
@@ -755,9 +771,9 @@ var mouse_zoom = function(event, i_plot) {
 			} else {
 				temp_top = plots[i_plot].ortho_camera.top * zoom_factor;
 				
-				theta = Math.atan2(temp_top, plots[i_plot].camera_r) * rad2deg * 2;
+				theta = Math.atan2(temp_top, plots[i_plot].camera_distance_scale) * rad2deg * 2;
 				if (theta > plots[i_plot].max_fov) {
-					temp_top = plots[i_plot].camera_r * Math.tan(plots[i_plot].max_fov / (2 * rad2deg));
+					temp_top = plots[i_plot].camera_distance_scale * Math.tan(plots[i_plot].max_fov / (2 * rad2deg));
 				}
 				
 				scale_ratio = temp_top / plots[i_plot].ortho_camera.top;
@@ -776,6 +792,8 @@ var mouse_zoom = function(event, i_plot) {
 			
 			var pan_x = -x2 + x1;
 			var pan_y = y2 - y1;
+			
+			update_fov_from_ortho(i_plot);
 		}
 		
 		var up_vector = new THREE.Vector3()
@@ -790,13 +808,13 @@ var mouse_zoom = function(event, i_plot) {
 			.crossVectors(plots[i_plot].camera_up, posn_vector)
 			.multiplyScalar(pan_x);
 		
-		plots[i_plot].camera_origin
+		var test_posn = new THREE.Vector3()
+			.copy(plots[i_plot].camera_origin)
 			.add(up_vector)
 			.add(right_vector);
 		
-		get_current_camera(i_plot).position
-			.add(up_vector)
-			.add(right_vector);
+		pan_towards(i_plot, test_posn);
+		
 		
 		// Re-scale text labels.
 		for (i = 0; i < plots[i_plot].axis_text_planes.length; i++) {
@@ -871,10 +889,22 @@ var mouse_move_fn = function(event, i_plot) {
 		var perc_horiz =  plots[i_plot].mouse.x;
 		var perc_vert  = -plots[i_plot].mouse.y;
 		
-		var delta_lat = delta_y * (tau/2) * (1 - Math.abs(perc_horiz)) / plots[i_plot].height;
-		var delta_lon = delta_x * (tau/2) * (1 - Math.abs(perc_vert)) / plots[i_plot].width;
+		var delta_lat = plots[i_plot].rotation_dir * delta_y * (tau/2) * (1 - Math.abs(perc_horiz)) / plots[i_plot].height;
+		var delta_lon = plots[i_plot].rotation_dir * delta_x * (tau/2) * (1 - Math.abs(perc_vert)) / plots[i_plot].width;
 		var delta_psi = delta_y * (tau/2) * perc_horiz / plots[i_plot].width +
 						delta_x * (tau/2) * perc_vert / plots[i_plot].height;
+		
+		if (plots[i_plot].rotate_less_with_zoom) {
+			var zoom_scale = Math.min(1, Math.tan(0.5 * plots[i_plot].persp_camera.fov / rad2deg));
+			delta_lat *= zoom_scale;
+			delta_lon *= zoom_scale;
+			
+			// The following is a fudge, based on the idea that if
+			// rotate_less_with_zoom, then we're probably inside a photosphere,
+			// and in that case I find that halving the psi rotation feels
+			// more comfortable.
+			delta_psi *= 0.5;
+		}
 		
 		var change_quat = new THREE.Quaternion()
 			.setFromEuler(get_current_camera(i_plot).rotation)
@@ -931,7 +961,7 @@ var mouse_move_fn = function(event, i_plot) {
 		var x_factor, y_factor;
 		
 		if (plots[i_plot].view_type == "perspective") {
-			var dist_scale = 2 * plots[i_plot].camera_r * Math.tan(get_current_camera(i_plot).fov / (2 * rad2deg));
+			var dist_scale = 2 * plots[i_plot].camera_distance_scale * Math.tan(get_current_camera(i_plot).fov / (2 * rad2deg));
 			
 			x_factor = dist_scale * delta_x / plots[i_plot].height;
 			y_factor = dist_scale * delta_y / plots[i_plot].height;
@@ -964,20 +994,7 @@ var mouse_move_fn = function(event, i_plot) {
 			.add(up_vector)
 			.add(right_vector);
 		
-		var test_dist = test_posn.lengthSq();
-		if (test_dist > plots[i_plot].max_pan_dist_sq) {
-			test_posn.multiplyScalar(Math.sqrt(plots[i_plot].max_pan_dist_sq / test_dist));
-			
-		}
-		
-		var dr = new THREE.Vector3()
-			.subVectors(test_posn, plots[i_plot].camera_origin);
-		
-		plots[i_plot].camera_origin
-			.add(dr);
-		
-		get_current_camera(i_plot).position
-			.add(dr);
+		pan_towards(i_plot, test_posn);
 		
 		if (plots[i_plot].show_grid) {
 			update_gridlines(i_plot);
@@ -1082,9 +1099,9 @@ var mouse_out_fn = function(event, i_plot, mouseover_i, do_render) {
 
 var get_scale_factor = function(i_plot) {
 	if (plots[i_plot].view_type == "perspective") {
-		// a point of size 10 pixels has a radius of 5 pixels, which correpsonds to
+		// a point of size 10 pixels has a radius of 5 pixels, which corresponds to
 		// a distance of half_height * 5 / (half_height in pixels).
-		return plots[i_plot].camera_r * Math.tan(0.5 * plots[i_plot].persp_camera.fov / rad2deg) / plots[i_plot].height;
+		return plots[i_plot].camera_distance_scale * Math.tan(0.5 * plots[i_plot].persp_camera.fov / rad2deg) / plots[i_plot].height;
 	} else {
 		return plots[i_plot].ortho_camera.top / plots[i_plot].height;
 	}
@@ -1242,6 +1259,14 @@ var get_current_camera = function(i_plot) {
 	}
 }
 
+var update_fov_from_ortho = function(i_plot) {
+	var theta = Math.atan2(plots[i_plot].ortho_camera.top, plots[i_plot].camera_distance_scale) * rad2deg * 2;
+	if (theta > plots[i_plot].max_fov) { theta = plots[i_plot].max_fov; }
+	if (theta < plots[i_plot].min_fov) { theta = plots[i_plot].min_fov; }
+	
+	plots[i_plot].persp_camera.fov = theta;
+}
+
 var toggle_camera = function(i_plot) {
 	return function () {
 		switch_camera_type(i_plot);
@@ -1254,7 +1279,7 @@ var switch_camera_type = function(i_plot) {
 	
 	if (plots[i_plot].view_type == "perspective") {
 		theta = plots[i_plot].persp_camera.fov / 2;
-		top = plots[i_plot].camera_r * Math.tan(theta / rad2deg);
+		top = plots[i_plot].camera_distance_scale * Math.tan(theta / rad2deg);
 		left = top * aspect;
 		
 		plots[i_plot].ortho_camera.left = -left;
@@ -1271,11 +1296,7 @@ var switch_camera_type = function(i_plot) {
 			plots[i_plot].point_material.uniforms.is_perspective.value = 0.0;
 		}
 	} else {
-		theta = Math.atan2(plots[i_plot].ortho_camera.top, plots[i_plot].camera_r) * rad2deg * 2;
-		if (theta > plots[i_plot].max_fov) { theta = plots[i_plot].max_fov; }
-		if (theta < plots[i_plot].min_fov) { theta = plots[i_plot].min_fov; }
-		
-		plots[i_plot].persp_camera.fov = theta;
+		update_fov_from_ortho(i_plot);
 		
 		plots[i_plot].persp_camera.position.copy(plots[i_plot].ortho_camera.position);
 		plots[i_plot].persp_camera.rotation.copy(plots[i_plot].ortho_camera.rotation);
@@ -1701,7 +1722,7 @@ var make_label_text_plane = function(text, font_face, font_size, use_white_text,
 			},
 			"vertexShader":   shader_labels_vertex,
 			"fragmentShader": shader_labels_fragment
-		})		
+		})
 	);
 	
 	return new_obj;
@@ -2759,6 +2780,14 @@ var show_group = function(i_plot, group, show_segments) {
 	}
 }
 
+var hide_photosphere = function(i_plot) {
+	plots[i_plot].scene.remove(plots[i_plot].photosphere);
+}
+
+var show_photosphere = function(i_plot) {
+	plots[i_plot].scene.add(plots[i_plot].photosphere);
+}
+
 var hide_label = function(i_plot, i) {
 	if (plots[i_plot].points[i].have_label) {
 		plots[i_plot].scene.remove(plots[i_plot].labels[i]);
@@ -3503,10 +3532,10 @@ var make_axes = function(i_plot, params, append) {
 	
 	// In case we're on orthographic camera and the perspective fov hasn't updated:
 	if (plots[i_plot].view_type == "orthographic") {
-		plots[i_plot].persp_camera.fov = Math.atan2(plots[i_plot].ortho_camera.top, plots[i_plot].camera_r) * rad2deg * 2;
+		plots[i_plot].persp_camera.fov = Math.atan2(plots[i_plot].ortho_camera.top, plots[i_plot].camera_distance_scale) * rad2deg * 2;
 	}
 	
-	var init_scale = 2 * tick_font_size * plots[i_plot].camera_r * Math.tan(0.5*plots[i_plot].persp_camera.fov / rad2deg) / plots[i_plot].height;
+	var init_scale = 2 * tick_font_size * plots[i_plot].camera_distance_scale * Math.tan(0.5*plots[i_plot].persp_camera.fov / rad2deg) / plots[i_plot].height;
 	
 	
 	var axis_tick_gaps = [0.1, 0.1, 0.1];
@@ -3665,7 +3694,7 @@ var make_axes = function(i_plot, params, append) {
 	}
 	plots[i_plot].axis_font_size = axis_font_size;
 	
-	init_scale = 2 * axis_font_size * plots[i_plot].camera_r * Math.tan(0.5 * plots[i_plot].persp_camera.fov / rad2deg) / plots[i_plot].height;
+	init_scale = 2 * axis_font_size * plots[i_plot].camera_distance_scale * Math.tan(0.5 * plots[i_plot].persp_camera.fov / rad2deg) / plots[i_plot].height;
 	
 	if (!(plots[i_plot].hasOwnProperty("init_axis_title_scale"))) {
 		// If we're changing data, we may already have this scale set,
@@ -5590,6 +5619,10 @@ var basic_plot_setup = function(i_plot, params) {
 	// A variable for possible use in the touch controls.
 	plots[i_plot].old_t = Date.now();
 	
+	// Following is used to see if we should render once a photosphere
+	// texture is loaded:
+	plots[i_plot].tried_initial_render = false;
+	
 	// First up, preparing the area.
 	
 	plots[i_plot].container_height = plots[i_plot].parent_div.offsetHeight;
@@ -5752,6 +5785,12 @@ var basic_plot_setup = function(i_plot, params) {
 	plots[i_plot].init_rot = params.hasOwnProperty("init_camera_rot") ? params.init_camera_rot : 0;
 	plots[i_plot].camera_r = params.hasOwnProperty("camera_r") ? params.camera_r : 5;
 	
+	if (params.hasOwnProperty("camera_distance_scale")) {
+		plots[i_plot].camera_distance_scale = params.camera_distance_scale;
+	} else {
+		plots[i_plot].camera_distance_scale = Math.max(plots[i_plot].camera_r, 1);
+	}
+	
 	plots[i_plot].camera_origin = new THREE.Vector3(0, 0, 0);
 	plots[i_plot].init_origin = [0, 0, 0];
 	if (params.hasOwnProperty("init_camera_origin")) {
@@ -5776,7 +5815,7 @@ var basic_plot_setup = function(i_plot, params) {
 		plots[i_plot].init_fov = (params.hasOwnProperty("fov")) ? params.fov : 47.25;
 		
 		theta = plots[i_plot].init_fov / 2;
-		ortho_top = plots[i_plot].camera_r * Math.tan(theta / rad2deg);
+		ortho_top = plots[i_plot].camera_distance_scale * Math.tan(theta / rad2deg);
 		ortho_right = ortho_top * aspect;
 	} else {
 		// Orthographic.
@@ -5789,28 +5828,30 @@ var basic_plot_setup = function(i_plot, params) {
 		} else {
 			plots[i_plot].init_fov = (params.hasOwnProperty("fov")) ? params.fov : 47.25;
 			
-			ortho_top = plots[i_plot].camera_r * Math.tan(0.5 * plots[i_plot].init_fov / rad2deg);
+			ortho_top = plots[i_plot].camera_distance_scale * Math.tan(0.5 * plots[i_plot].init_fov / rad2deg);
 			ortho_right = ortho_top * aspect;
 		}
 		
-		theta = Math.atan2(ortho_top, plots[i_plot].camera_r) * rad2deg * 2;
+		theta = Math.atan2(ortho_top, plots[i_plot].camera_distance_scale) * rad2deg * 2;
 		if (theta > 90) { theta = 90; }
 		
 		plots[i_plot].init_fov = theta;
 	}
 	
+	var frustum_far = (plots[i_plot].camera_distance_scale < 5) ? 50 : 10 * plots[i_plot].camera_distance_scale;
+	
 	plots[i_plot].persp_camera = new THREE.PerspectiveCamera(
 		plots[i_plot].init_fov,
 		aspect,
 		0.01,
-		10*plots[i_plot].camera_r);
+		frustum_far);
 	
 	
 	plots[i_plot].init_ortho_top = ortho_top;
 	plots[i_plot].init_ortho_right = ortho_right;
 	
 	plots[i_plot].ortho_camera = new THREE.OrthographicCamera(
-		-ortho_right, ortho_right, ortho_top, -ortho_top, 0.01, 10*plots[i_plot].camera_r);
+		-ortho_right, ortho_right, ortho_top, -ortho_top, 0.01, frustum_far);
 	
 	plots[i_plot].persp_camera.rotation.order = "ZYX";
 	plots[i_plot].ortho_camera.rotation.order = "ZYX";
@@ -5823,6 +5864,13 @@ var basic_plot_setup = function(i_plot, params) {
 		true,
 		[plots[i_plot].init_lonlat[0], plots[i_plot].init_lonlat[1], plots[i_plot].init_rot],
 		plots[i_plot].init_origin);
+	
+	plots[i_plot].rotation_dir = 1;
+	if (params.hasOwnProperty("reverse_rotation")) {
+		plots[i_plot].rotation_dir = params.reverse_rotation ? -1 : 1;
+	}
+	
+	plots[i_plot].rotate_less_with_zoom = params.hasOwnProperty("rotate_less_with_zoom") ? params.rotate_less_with_zoom : false;
 	
 	
 	// Preparing the font for labels etc.
@@ -5838,6 +5886,50 @@ var basic_plot_setup = function(i_plot, params) {
 	plots[i_plot].raycaster = new THREE.Raycaster();
 	
 	plots[i_plot].parent_div.removeChild(tiny_div);
+	
+	if (params.hasOwnProperty("photosphere_image")) {
+		var photosphere_radius = params.hasOwnProperty("photosphere_radius") ? params.photosphere_radius : 1;
+		
+		var width_segments = params.hasOwnProperty("photosphere_width_segments") ? params.photosphere_width_segments : 60;
+		var height_segments = params.hasOwnProperty("photosphere_height_segments") ? params.photosphere_height_segments : 60;
+		
+		plots[i_plot].photosphere_geometry = new THREE.SphereGeometry(photosphere_radius, width_segments, height_segments);
+		var geom_scale = -1;
+		if (params.hasOwnProperty("photosphere_inverted")) {
+			if (params.photosphere_inverted) {
+				geom_scale = 1;
+			}
+		}
+		
+		plots[i_plot].photosphere_geometry.scale(geom_scale, 1, 1);
+		
+		plots[i_plot].photosphere_texture = new THREE.TextureLoader().load(params.photosphere_image, function() {
+			add_photosphere(i_plot, params);
+		});
+	}
+}
+
+var add_photosphere = function(i_plot, params) {
+	plots[i_plot].photosphere_texture.minFilter = THREE.NearestFilter;
+	
+	var material = new THREE.MeshBasicMaterial({"map": plots[i_plot].photosphere_texture});
+	plots[i_plot].photosphere = new THREE.Mesh(plots[i_plot].photosphere_geometry, material);
+	plots[i_plot].photosphere.rotation.x = tau/4;
+	
+	if (params.hasOwnProperty("photosphere_origin")) {
+		plots[i_plot].photosphere.position.set(
+			params.photosphere_origin[0],
+			params.photosphere_origin[1],
+			params.photosphere_origin[2]);
+	}
+	
+	plots[i_plot].scene.add(plots[i_plot].photosphere);
+	
+	if (plots[i_plot].tried_initial_render) {
+		// The plot was rendered without the texture having
+		// loaded, so render again:
+		update_render(i_plot);
+	}
 }
 
 var basic_plot_listeners = function(i_plot, params) {
@@ -6111,11 +6203,6 @@ var check_loaded_textures = function(i_plot, params) {
 	if (plots[i_plot].texture_count == plots[i_plot].texture_sources.length) {
 		// All textures loaded.
 		
-		for (var i = 0; i < plots[i_plot].textures.length; i++) {
-			//plots[i_plot].textures[i].minFilter = THREE.NearestFilter;
-		}
-		
-		
 		if (plots[i_plot].geom_type == "quad") {
 			// Point each group's texture at the
 			// relevant entry in the textures array.
@@ -6190,6 +6277,7 @@ var make_scatter_main = function(params, i_plot) {
 	custom_plot_listeners(i_plot, params);
 	
 	update_render(i_plot);
+	plots[i_plot].tried_initial_render = true;
 	
 	basic_plot_listeners(i_plot, params);
 }
@@ -6332,8 +6420,9 @@ var make_surface = function(params) {
 	make_mesh_points(i_plot, params, temp_obj.plot_locations, temp_obj.null_points);
 	
 	custom_plot_listeners(i_plot, params);
-	
 	update_render(i_plot);
+	plots[i_plot].tried_initial_render = true;
+	
 	basic_plot_listeners(i_plot, params);
 }
 
@@ -6344,14 +6433,18 @@ exports.touch_move_fn = touch_move_fn;
 exports.touch_end_fn = touch_end_fn;
 exports.mouse_down_fn = mouse_down_fn;
 exports.mouse_up_fn = mouse_up_fn;
+exports.pan_towards = pan_towards;
 exports.mouse_zoom_wrapper = mouse_zoom_wrapper;
 exports.mouse_zoom = mouse_zoom;
 exports.mouse_move_wrapper = mouse_move_wrapper;
 exports.set_normed_mouse_coords = set_normed_mouse_coords;
 exports.mouse_move_fn = mouse_move_fn;
+exports.mouse_out_wrapper = mouse_out_wrapper;
+exports.mouse_out_fn = mouse_out_fn;
 exports.get_scale_factor = get_scale_factor;
 exports.get_raycast_i = get_raycast_i;
 exports.get_current_camera = get_current_camera;
+exports.update_fov_from_ortho = update_fov_from_ortho;
 exports.toggle_camera = toggle_camera;
 exports.switch_camera_type = switch_camera_type;
 exports.update_labels = update_labels;
@@ -6375,8 +6468,22 @@ exports.reset_camera_wrapper = reset_camera_wrapper;
 exports.reset_camera = reset_camera;
 exports.get_i_plot = get_i_plot;
 exports.destroy_plot = destroy_plot;
+exports.get_location = get_location;
 exports.set_point_position = set_point_position;
 exports.set_point_segments_position = set_point_segments_position;
+exports.set_surface_point_hide = set_surface_point_hide;
+exports.set_mesh_point_hide = set_mesh_point_hide;
+exports.hide_surface_point = hide_surface_point;
+exports.show_surface_point = show_surface_point;
+exports.hide_mesh_point = hide_mesh_point;
+exports.show_mesh_point = show_mesh_point;
+exports.set_mesh_axis_hide = set_mesh_axis_hide;
+exports.hide_mesh_x = hide_mesh_x;
+exports.show_mesh_x = show_mesh_x;
+exports.hide_mesh_y = hide_mesh_y;
+exports.show_mesh_y = show_mesh_y;
+exports.surrounding_surface_quads = surrounding_surface_quads;
+exports.surrounding_mesh_segments = surrounding_mesh_segments;
 exports.set_surface_point_z = set_surface_point_z;
 exports.set_color = set_color;
 exports.set_point_color = set_point_color;
@@ -6385,14 +6492,18 @@ exports.set_label_color = set_label_color;
 exports.set_label_background_color = set_label_background_color;
 exports.set_surface_point_color = set_surface_point_color;
 exports.set_mesh_point_color = set_mesh_point_color;
+exports.set_surface_color_scale_fn = set_surface_color_scale_fn;
 exports.set_surface_color_scale = set_surface_color_scale;
 exports.set_size = set_size;
 exports.set_point_size = set_point_size;
-exports.update_render = update_render;
 exports.hide_point = hide_point;
+exports.hide_point_segments = hide_point_segments;
 exports.hide_group = hide_group;
 exports.show_point = show_point;
+exports.show_point_segments = show_point_segments;
 exports.show_group = show_group;
+exports.hide_photosphere = hide_photosphere;
+exports.show_photosphere = show_photosphere;
 exports.hide_label = hide_label;
 exports.hide_group_labels = hide_group_labels;
 exports.show_label = show_label;
@@ -6401,59 +6512,43 @@ exports.show_surface = show_surface;
 exports.hide_surface = hide_surface;
 exports.show_mesh = show_mesh;
 exports.hide_mesh = hide_mesh;
-exports.show_surface_point = show_surface_point;
-exports.hide_surface_point = hide_surface_point;
-exports.show_mesh_point = show_mesh_point;
-exports.hide_mesh_point = hide_mesh_point;
-exports.set_mesh_axis_hide = set_mesh_axis_hide;
-exports.hide_mesh_x = hide_mesh_x;
-exports.hide_mesh_y = hide_mesh_y;
-exports.show_mesh_x = show_mesh_x;
-exports.show_mesh_y = show_mesh_y;
 exports.set_mesh_uniform_color = set_mesh_uniform_color;
 exports.use_uniform_mesh_color = use_uniform_mesh_color;
+exports.update_render = update_render;
+exports.get_colors = get_colors;
+exports.colorise_otherise_params = colorise_otherise_params;
 exports.prepare_sizes = prepare_sizes;
 exports.make_axes = make_axes;
 exports.calculate_locations = calculate_locations;
 exports.interpolate_color = interpolate_color;
 exports.interpolate_color_255 = interpolate_color_255;
-exports.get_colors = get_colors;
-exports.make_points = make_points;
-exports.smoothstep = smoothstep;
-exports.animate_transition_wrapper = animate_transition_wrapper;
-exports.animate_transition = animate_transition;
-exports.update_points_input_data = update_points_input_data;
-exports.change_data = change_data;
-exports.make_scatter = make_scatter;
-exports.make_scatter_main = make_scatter_main;
-exports.make_surface = make_surface;
-exports.basic_plot_listeners = basic_plot_listeners;
-exports.basic_plot_setup = basic_plot_setup;
-exports.calculate_color = calculate_color;
-exports.check_loaded_textures = check_loaded_textures;
-exports.check_surface_data_sizes = check_surface_data_sizes;
-exports.check_webgl_fallback = check_webgl_fallback;
-exports.colorise_otherise_params = colorise_otherise_params;
-exports.colorscale_greys = colorscale_greys;
 exports.colorscale_inferno = colorscale_inferno;
 exports.colorscale_magma = colorscale_magma;
 exports.colorscale_plasma = colorscale_plasma;
 exports.colorscale_viridis = colorscale_viridis;
-exports.custom_plot_listeners = custom_plot_listeners;
-exports.get_location = get_location;
-exports.hide_point_segments = hide_point_segments;
+exports.colorscale_greys = colorscale_greys;
+exports.calculate_color = calculate_color;
+exports.make_points = make_points;
 exports.make_mesh_arrays = make_mesh_arrays;
 exports.make_mesh_points = make_mesh_points;
-exports.mouse_out_fn = mouse_out_fn;
-exports.mouse_out_wrapper = mouse_out_wrapper;
-exports.point_type_src = point_type_src;
-exports.set_mesh_point_hide = set_mesh_point_hide;
-exports.set_surface_color_scale_fn = set_surface_color_scale_fn;
-exports.set_surface_point_hide = set_surface_point_hide;
-exports.show_point_segments = show_point_segments;
-exports.surrounding_mesh_segments = surrounding_mesh_segments;
-exports.surrounding_surface_quads = surrounding_surface_quads;
+exports.smoothstep = smoothstep;
+exports.animate_transition_wrapper = animate_transition_wrapper;
+exports.animate_transition = animate_transition;
+exports.update_points_input_data = update_points_input_data;
 exports.update_surface_input_data = update_surface_input_data;
+exports.change_data = change_data;
+exports.point_type_src = point_type_src;
+exports.check_webgl_fallback = check_webgl_fallback;
+exports.basic_plot_setup = basic_plot_setup;
+exports.add_photosphere = add_photosphere;
+exports.basic_plot_listeners = basic_plot_listeners;
+exports.custom_plot_listeners = custom_plot_listeners;
+exports.make_scatter = make_scatter;
+exports.check_loaded_textures = check_loaded_textures;
+exports.make_scatter_main = make_scatter_main;
+exports.check_surface_data_sizes = check_surface_data_sizes;
+exports.make_surface = make_surface;
+
 exports.plots = plots;
 exports.tau = tau;
 exports.rad2deg = rad2deg;
