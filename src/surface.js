@@ -23,7 +23,7 @@ import {
 	basic_plot_listeners,
 	custom_plot_listeners,
 } from './three_d.js'
-
+import * as THREE from 'https://cdn.skypack.dev/three@0.129.0';
 
 
 function check_surface_data_sizes(params) {
@@ -423,10 +423,10 @@ function make_mesh_points(plot, params, plot_locations, null_points) {
 	
 	var array_obj = make_mesh_arrays(plot, params, plot_locations, null_points);
 	
-	surface_geom.addAttribute("position",   new THREE.BufferAttribute(array_obj.surface_positions, 3, true));
-	surface_geom.addAttribute("color",      new THREE.BufferAttribute(array_obj.surface_colors,    4, true));
-	surface_geom.addAttribute("null_point", new THREE.BufferAttribute(array_obj.surface_nulls,     1, true));
-	surface_geom.addAttribute("hide_point", new THREE.BufferAttribute(array_obj.surface_hides,     1, true));
+	surface_geom.setAttribute("position",   new THREE.BufferAttribute(array_obj.surface_positions, 3, true));
+	surface_geom.setAttribute("color",      new THREE.BufferAttribute(array_obj.surface_colors,    4, true));
+	surface_geom.setAttribute("null_point", new THREE.BufferAttribute(array_obj.surface_nulls,     1, true));
+	surface_geom.setAttribute("hide_point", new THREE.BufferAttribute(array_obj.surface_hides,     1, true));
 	
 	plot.surface = new THREE.Mesh(surface_geom, plot.surface_material);
 	
@@ -436,11 +436,11 @@ function make_mesh_points(plot, params, plot_locations, null_points) {
 	
 	if (plot.showing_surface) { plot.scene.add(plot.surface); }
 	
-	mesh_geom.addAttribute("position",   new THREE.BufferAttribute(array_obj.mesh_positions, 3, true));
-	mesh_geom.addAttribute("color",      new THREE.BufferAttribute(array_obj.mesh_colors,    4, true));
-	mesh_geom.addAttribute("null_point", new THREE.BufferAttribute(array_obj.mesh_nulls,     1, true));
-	mesh_geom.addAttribute("hide_point", new THREE.BufferAttribute(array_obj.mesh_hides,     1, true));
-	mesh_geom.addAttribute("hide_axis",  new THREE.BufferAttribute(array_obj.mesh_hide_axes, 1, true));
+	mesh_geom.setAttribute("position",   new THREE.BufferAttribute(array_obj.mesh_positions, 3, true));
+	mesh_geom.setAttribute("color",      new THREE.BufferAttribute(array_obj.mesh_colors,    4, true));
+	mesh_geom.setAttribute("null_point", new THREE.BufferAttribute(array_obj.mesh_nulls,     1, true));
+	mesh_geom.setAttribute("hide_point", new THREE.BufferAttribute(array_obj.mesh_hides,     1, true));
+	mesh_geom.setAttribute("hide_axis",  new THREE.BufferAttribute(array_obj.mesh_hide_axes, 1, true));
 	
 	plot.surface_mesh = new THREE.LineSegments(mesh_geom, plot.mesh_material);
 	

@@ -1,7 +1,7 @@
 import { update_gridlines, update_labels,update_axes} from './display.js'
 import {set_point_size} from './scatter.js'
 import {update_render,rad2deg} from './three_d.js'
-
+import * as THREE from 'https://cdn.skypack.dev/three@0.129.0';
 function get_current_camera(plot) {
   if (plot.view_type == "perspective") {
     return plot.persp_camera;

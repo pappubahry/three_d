@@ -26,7 +26,7 @@
  */
 
 
-
+import * as THREE from 'https://cdn.skypack.dev/three@0.129.0';
 
 import {
 	touch_start_fn,
@@ -1310,8 +1310,7 @@ function basic_plot_setup(plot,i_plot, params) {
 	
 	// First up, preparing the area.
 	
-	plot.container_height = plot.parent_div.offsetHeight;
-	
+	//plot.container_height = plot.parent_div.offsetHeight;
 	plot.scene = new THREE.Scene();
 	
 	plot.container_width = plot.parent_div.offsetWidth;
@@ -1419,6 +1418,7 @@ function basic_plot_setup(plot,i_plot, params) {
 	plot.parent_div.style.width = width + "px";
 	
 	let wrapper_div = document.createElement("div");
+	wrapper_div.id= "main_plot"
 	wrapper_div.style.width = width + "px";
 	wrapper_div.style.height = height + "px";
 	wrapper_div.style.overflow = "hidden";
@@ -1436,24 +1436,24 @@ function basic_plot_setup(plot,i_plot, params) {
 	plot.mid_x = plot.width / 2;
 	plot.mid_y = plot.height / 2;
 	
-	let bg_color = ("background_color" in params) ? params.background_color : "#000000";
+	let bg_color = ("background_color" in params) ? params.background_color : "#FFFFFF";
 	let bg_color_hex;
 	
-	let tiny_div = document.createElement("div");
-	tiny_div.style.width = "1px";
-	tiny_div.style.height = "1px";
-	plot.parent_div.appendChild(tiny_div);
-	
-	if (typeof(bg_color) == "string") {
-		bg_color_hex = css_color_to_hex(bg_color, tiny_div);
-	} else {
-		bg_color_hex = bg_color;
-		bg_color = hex_to_css_color(bg_color);
-	}
+	//let tiny_div = document.createElement("div");
+	//tiny_div.id= 'tiny_div';
+	// tiny_div.style.width = "1px";
+	// tiny_div.style.height = "1px";
+	//plot.parent_div.appendChild(tiny_div);
+	// if (typeof(bg_color) == "string") {
+	// 	bg_color_hex = css_color_to_hex(bg_color, tiny_div);
+	// } else {
+	// 	bg_color_hex = bg_color;
+	// 	bg_color = hex_to_css_color(bg_color);
+	// }
 	
 	plot.bg_color = bg_color;
 	plot.bg_color_hex = bg_color_hex;
-	plot.scene.background = new THREE.Color(bg_color_hex);
+	plot.scene.background = new THREE.Color(plot.bg_color);
 	
 	let aspect = plot.width / plot.height;
 	
@@ -1570,7 +1570,7 @@ function basic_plot_setup(plot,i_plot, params) {
 	plot.mouse = new THREE.Vector2();
 	plot.raycaster = new THREE.Raycaster();
 	
-	plot.parent_div.removeChild(tiny_div);
+	//plot.parent_div.removeChild(tiny_div);
 	
 	if ("photosphere_image" in params) {
 		let photosphere_radius = ("photosphere_radius" in params) ? params.photosphere_radius : 1;

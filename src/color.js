@@ -100,7 +100,6 @@ function css_color_to_hex(css, dummy) {
 	if (remove_dummy) { body.appendChild(dummy); }
 	
 	var rgb = window.getComputedStyle(dummy).backgroundColor;
-	
 	if (remove_dummy) { body.removeChild(dummy); }
 	
 	rgb = rgb.replace(/rgb\(/, "");
@@ -109,7 +108,6 @@ function css_color_to_hex(css, dummy) {
 	
 	var reg = /([0-9]+)\,([0-9]+)\,([0-9]+)/g;
 	rgb = reg.exec(rgb);
-	
 	return (parseInt(rgb[1]) << 16) + (parseInt(rgb[2]) << 8) + parseInt(rgb[3]);
 }
 function interpolate_color_255(t, colors) {

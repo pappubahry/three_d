@@ -3,7 +3,7 @@ import {css_color_to_hex,hex_to_css_color,hex_to_rgb_obj} from './color.js'
 import {surrounding_surface_quads,surrounding_mesh_segments} from './surface.js'
 import { tau,rad2deg } from "./three_d.js";
 import * as d3 from "https://cdn.skypack.dev/d3@7";
-
+import * as THREE from 'https://cdn.skypack.dev/three@0.129.0';
 function update_labels(plot, start_i, end_i) {
   if (plot.geom_type == "none") {
     return;
@@ -523,7 +523,6 @@ function make_text_plane(
   }
 
   var aspect = canvas_width / canvas_height;
-
   // The main text:
   var texture = new THREE.Texture(
     make_text_canvas(
@@ -843,29 +842,28 @@ function make_axes(plot, params, append) {
     }
   }
 
-  var tiny_div = document.createElement("div");
-  tiny_div.style.width = "1px";
-  tiny_div.style.height = "1px";
-  plot.parent_div.appendChild(tiny_div);
+  // var tiny_div = document.createElement("div");
+  // tiny_div.style.width = "1px";
+  // tiny_div.style.height = "1px";
+  // plot.parent_div.appendChild(tiny_div);
 
-  var axis_color;
-  if (params.hasOwnProperty("axis_color")) {
-    axis_color = params.axis_color;
-  } else {
-    if (!plot.hasOwnProperty("axis_color")) {
-      axis_color = 0xffffff;
-    } else {
-      axis_color = plot.axis_color;
-    }
-  }
+  // var axis_color;
+  // if (params.hasOwnProperty("axis_color")) {
+  //   axis_color = params.axis_color;
+  // } else {
+  //   if (!plot.hasOwnProperty("axis_color")) {
+  //     axis_color = 0xffffff;
+  //   } else {
+  //     axis_color = plot.axis_color;
+  //   }
+  // }
 
-  if (typeof axis_color == "string") {
-    axis_color = css_color_to_hex(axis_color, tiny_div);
-  }
+  // if (typeof axis_color == "string") {
+  //   axis_color = css_color_to_hex(axis_color, tiny_div);
+  // }
+  plot.axis_color = "#000000";
 
-  plot.axis_color = axis_color;
-
-  var line_material = new THREE.LineBasicMaterial({ color: axis_color });
+  var line_material = new THREE.LineBasicMaterial({ color: plot.axis_color });
 
   var axis_ranges = [100, 100, 100, 100];
   var max_fixed_range = -1;
@@ -1129,19 +1127,17 @@ function make_axes(plot, params, append) {
       );
     }
   }
-
-  var box_geom = new THREE.Geometry();
+  var box_geom = []
+  //var box_geom = new THREE.Geometry();
   // LineSegments draws a segment between vertices 0 and 1, 2, and 3, 4 and 5, ....
-
-  // Base:
-  box_geom.vertices.push(
+  box_geom.push(
     new THREE.Vector3(
       -axis_scale_factor[0],
       -axis_scale_factor[1],
       -axis_scale_factor[2]
     )
   );
-  box_geom.vertices.push(
+  box_geom.push(
     new THREE.Vector3(
       -axis_scale_factor[0],
       axis_scale_factor[1],
@@ -1149,14 +1145,14 @@ function make_axes(plot, params, append) {
     )
   );
 
-  box_geom.vertices.push(
+  box_geom.push(
     new THREE.Vector3(
       -axis_scale_factor[0],
       axis_scale_factor[1],
       -axis_scale_factor[2]
     )
   );
-  box_geom.vertices.push(
+  box_geom.push(
     new THREE.Vector3(
       axis_scale_factor[0],
       axis_scale_factor[1],
@@ -1164,14 +1160,14 @@ function make_axes(plot, params, append) {
     )
   );
 
-  box_geom.vertices.push(
+  box_geom.push(
     new THREE.Vector3(
       axis_scale_factor[0],
       axis_scale_factor[1],
       -axis_scale_factor[2]
     )
   );
-  box_geom.vertices.push(
+  box_geom.push(
     new THREE.Vector3(
       axis_scale_factor[0],
       -axis_scale_factor[1],
@@ -1179,14 +1175,14 @@ function make_axes(plot, params, append) {
     )
   );
 
-  box_geom.vertices.push(
+  box_geom.push(
     new THREE.Vector3(
       axis_scale_factor[0],
       -axis_scale_factor[1],
       -axis_scale_factor[2]
     )
   );
-  box_geom.vertices.push(
+  box_geom.push(
     new THREE.Vector3(
       -axis_scale_factor[0],
       -axis_scale_factor[1],
@@ -1195,14 +1191,14 @@ function make_axes(plot, params, append) {
   );
 
   // Top:
-  box_geom.vertices.push(
+  box_geom.push(
     new THREE.Vector3(
       -axis_scale_factor[0],
       -axis_scale_factor[1],
       axis_scale_factor[2]
     )
   );
-  box_geom.vertices.push(
+  box_geom.push(
     new THREE.Vector3(
       -axis_scale_factor[0],
       axis_scale_factor[1],
@@ -1210,14 +1206,14 @@ function make_axes(plot, params, append) {
     )
   );
 
-  box_geom.vertices.push(
+  box_geom.push(
     new THREE.Vector3(
       -axis_scale_factor[0],
       axis_scale_factor[1],
       axis_scale_factor[2]
     )
   );
-  box_geom.vertices.push(
+  box_geom.push(
     new THREE.Vector3(
       axis_scale_factor[0],
       axis_scale_factor[1],
@@ -1225,14 +1221,14 @@ function make_axes(plot, params, append) {
     )
   );
 
-  box_geom.vertices.push(
+  box_geom.push(
     new THREE.Vector3(
       axis_scale_factor[0],
       axis_scale_factor[1],
       axis_scale_factor[2]
     )
   );
-  box_geom.vertices.push(
+  box_geom.push(
     new THREE.Vector3(
       axis_scale_factor[0],
       -axis_scale_factor[1],
@@ -1240,14 +1236,14 @@ function make_axes(plot, params, append) {
     )
   );
 
-  box_geom.vertices.push(
+  box_geom.push(
     new THREE.Vector3(
       axis_scale_factor[0],
       -axis_scale_factor[1],
       axis_scale_factor[2]
     )
   );
-  box_geom.vertices.push(
+  box_geom.push(
     new THREE.Vector3(
       -axis_scale_factor[0],
       -axis_scale_factor[1],
@@ -1256,14 +1252,14 @@ function make_axes(plot, params, append) {
   );
 
   // Vertical edges:
-  box_geom.vertices.push(
+  box_geom.push(
     new THREE.Vector3(
       -axis_scale_factor[0],
       axis_scale_factor[1],
       -axis_scale_factor[2]
     )
   );
-  box_geom.vertices.push(
+  box_geom.push(
     new THREE.Vector3(
       -axis_scale_factor[0],
       axis_scale_factor[1],
@@ -1271,14 +1267,14 @@ function make_axes(plot, params, append) {
     )
   );
 
-  box_geom.vertices.push(
+  box_geom.push(
     new THREE.Vector3(
       axis_scale_factor[0],
       -axis_scale_factor[1],
       -axis_scale_factor[2]
     )
   );
-  box_geom.vertices.push(
+  box_geom.push(
     new THREE.Vector3(
       axis_scale_factor[0],
       -axis_scale_factor[1],
@@ -1286,14 +1282,14 @@ function make_axes(plot, params, append) {
     )
   );
 
-  box_geom.vertices.push(
+  box_geom.push(
     new THREE.Vector3(
       axis_scale_factor[0],
       axis_scale_factor[1],
       -axis_scale_factor[2]
     )
   );
-  box_geom.vertices.push(
+  box_geom.push(
     new THREE.Vector3(
       axis_scale_factor[0],
       axis_scale_factor[1],
@@ -1301,21 +1297,203 @@ function make_axes(plot, params, append) {
     )
   );
 
-  box_geom.vertices.push(
+  box_geom.push(
     new THREE.Vector3(
       -axis_scale_factor[0],
       -axis_scale_factor[1],
       -axis_scale_factor[2]
     )
   );
-  box_geom.vertices.push(
+  box_geom.push(
     new THREE.Vector3(
       -axis_scale_factor[0],
       -axis_scale_factor[1],
       axis_scale_factor[2]
     )
   );
+  // Base:
+  // box_geom.vertices.push(
+  //   new THREE.Vector3(
+  //     -axis_scale_factor[0],
+  //     -axis_scale_factor[1],
+  //     -axis_scale_factor[2]
+  //   )
+  // );
+  // box_geom.vertices.push(
+  //   new THREE.Vector3(
+  //     -axis_scale_factor[0],
+  //     axis_scale_factor[1],
+  //     -axis_scale_factor[2]
+  //   )
+  // );
 
+  // box_geom.vertices.push(
+  //   new THREE.Vector3(
+  //     -axis_scale_factor[0],
+  //     axis_scale_factor[1],
+  //     -axis_scale_factor[2]
+  //   )
+  // );
+  // box_geom.vertices.push(
+  //   new THREE.Vector3(
+  //     axis_scale_factor[0],
+  //     axis_scale_factor[1],
+  //     -axis_scale_factor[2]
+  //   )
+  // );
+
+  // box_geom.vertices.push(
+  //   new THREE.Vector3(
+  //     axis_scale_factor[0],
+  //     axis_scale_factor[1],
+  //     -axis_scale_factor[2]
+  //   )
+  // );
+  // box_geom.vertices.push(
+  //   new THREE.Vector3(
+  //     axis_scale_factor[0],
+  //     -axis_scale_factor[1],
+  //     -axis_scale_factor[2]
+  //   )
+  // );
+
+  // box_geom.vertices.push(
+  //   new THREE.Vector3(
+  //     axis_scale_factor[0],
+  //     -axis_scale_factor[1],
+  //     -axis_scale_factor[2]
+  //   )
+  // );
+  // box_geom.vertices.push(
+  //   new THREE.Vector3(
+  //     -axis_scale_factor[0],
+  //     -axis_scale_factor[1],
+  //     -axis_scale_factor[2]
+  //   )
+  // );
+
+  // // Top:
+  // box_geom.vertices.push(
+  //   new THREE.Vector3(
+  //     -axis_scale_factor[0],
+  //     -axis_scale_factor[1],
+  //     axis_scale_factor[2]
+  //   )
+  // );
+  // box_geom.vertices.push(
+  //   new THREE.Vector3(
+  //     -axis_scale_factor[0],
+  //     axis_scale_factor[1],
+  //     axis_scale_factor[2]
+  //   )
+  // );
+
+  // box_geom.vertices.push(
+  //   new THREE.Vector3(
+  //     -axis_scale_factor[0],
+  //     axis_scale_factor[1],
+  //     axis_scale_factor[2]
+  //   )
+  // );
+  // box_geom.vertices.push(
+  //   new THREE.Vector3(
+  //     axis_scale_factor[0],
+  //     axis_scale_factor[1],
+  //     axis_scale_factor[2]
+  //   )
+  // );
+
+  // box_geom.vertices.push(
+  //   new THREE.Vector3(
+  //     axis_scale_factor[0],
+  //     axis_scale_factor[1],
+  //     axis_scale_factor[2]
+  //   )
+  // );
+  // box_geom.vertices.push(
+  //   new THREE.Vector3(
+  //     axis_scale_factor[0],
+  //     -axis_scale_factor[1],
+  //     axis_scale_factor[2]
+  //   )
+  // );
+
+  // box_geom.vertices.push(
+  //   new THREE.Vector3(
+  //     axis_scale_factor[0],
+  //     -axis_scale_factor[1],
+  //     axis_scale_factor[2]
+  //   )
+  // );
+  // box_geom.vertices.push(
+  //   new THREE.Vector3(
+  //     -axis_scale_factor[0],
+  //     -axis_scale_factor[1],
+  //     axis_scale_factor[2]
+  //   )
+  // );
+
+  // // Vertical edges:
+  // box_geom.vertices.push(
+  //   new THREE.Vector3(
+  //     -axis_scale_factor[0],
+  //     axis_scale_factor[1],
+  //     -axis_scale_factor[2]
+  //   )
+  // );
+  // box_geom.vertices.push(
+  //   new THREE.Vector3(
+  //     -axis_scale_factor[0],
+  //     axis_scale_factor[1],
+  //     axis_scale_factor[2]
+  //   )
+  // );
+
+  // box_geom.vertices.push(
+  //   new THREE.Vector3(
+  //     axis_scale_factor[0],
+  //     -axis_scale_factor[1],
+  //     -axis_scale_factor[2]
+  //   )
+  // );
+  // box_geom.vertices.push(
+  //   new THREE.Vector3(
+  //     axis_scale_factor[0],
+  //     -axis_scale_factor[1],
+  //     axis_scale_factor[2]
+  //   )
+  // );
+
+  // box_geom.vertices.push(
+  //   new THREE.Vector3(
+  //     axis_scale_factor[0],
+  //     axis_scale_factor[1],
+  //     -axis_scale_factor[2]
+  //   )
+  // );
+  // box_geom.vertices.push(
+  //   new THREE.Vector3(
+  //     axis_scale_factor[0],
+  //     axis_scale_factor[1],
+  //     axis_scale_factor[2]
+  //   )
+  // );
+
+  // box_geom.vertices.push(
+  //   new THREE.Vector3(
+  //     -axis_scale_factor[0],
+  //     -axis_scale_factor[1],
+  //     -axis_scale_factor[2]
+  //   )
+  // );
+  // box_geom.vertices.push(
+  //   new THREE.Vector3(
+  //     -axis_scale_factor[0],
+  //     -axis_scale_factor[1],
+  //     axis_scale_factor[2]
+  //   )
+  // );
+  box_geom = new THREE.BufferGeometry().setFromPoints( box_geom );
   plot.axis_box = new THREE.LineSegments(box_geom, line_material);
 
   if (!plot.hasOwnProperty("show_box")) {
@@ -1414,12 +1592,7 @@ function make_axes(plot, params, append) {
 
   for (i = 0; i < 3; i++) {
     tick_locations.push([]);
-    tick_geom.push([
-      new THREE.Geometry(),
-      new THREE.Geometry(),
-      new THREE.Geometry(),
-      new THREE.Geometry(),
-    ]);
+    let tick_geom_sub=[]
     plot.axis_ticks.push([]);
 
     i2 = (i + 1) % 3;
@@ -1443,11 +1616,9 @@ function make_axes(plot, params, append) {
           vertex2[axes[i]] = 0;
           vertex2[axes[i2]] *= signs[k];
           vertex2[axes[i3]] *= signs[l];
-          vertex2.add(vertex1);
-
-          tick_geom[i][axis_ct].vertices.push(vertex1);
-          tick_geom[i][axis_ct].vertices.push(vertex2);
-
+          tick_geom_sub.push(vertex1);
+          tick_geom_sub.push(vertex2);
+          tick_geom.push(tick_geom_sub)
           axis_ct++;
         }
       }
@@ -1456,8 +1627,9 @@ function make_axes(plot, params, append) {
     }
 
     for (j = 0; j < 4; j++) {
+      let g = new THREE.BufferGeometry().setFromPoints( tick_geom[i][j]);
       plot.axis_ticks[i].push(
-        new THREE.LineSegments(tick_geom[i][j], line_material)
+        new THREE.LineSegments(g, line_material)
       );
     }
   }
@@ -1469,19 +1641,19 @@ function make_axes(plot, params, append) {
   }
 
   // Gridlines.
-  var grid_color = params.hasOwnProperty("grid_color")
-    ? params.grid_color
-    : 0x808080;
-  if (typeof grid_color == "string") {
-    grid_color = css_color_to_hex(grid_color, tiny_div);
-  }
+  var grid_color = "#000000"
+  // params.hasOwnProperty("grid_color")
+  //   ? params.grid_color
+  //   : 0x808080;
+  // if (typeof grid_color == "string") {
+  //   grid_color = css_color_to_hex(grid_color, tiny_div);
+  // }
 
   plot.bounding_planes = [
     axis_scale_factor[0],
     axis_scale_factor[1],
     axis_scale_factor[2],
   ];
-
   var grid_material = new THREE.LineBasicMaterial({ color: grid_color });
 
   if (!plot.hasOwnProperty("show_grid")) {
@@ -1496,8 +1668,10 @@ function make_axes(plot, params, append) {
   var tick_ct;
 
   for (i = 0; i < 3; i++) {
-    grid_geom_lower = new THREE.Geometry();
-    grid_geom_upper = new THREE.Geometry();
+    // grid_geom_lower = new THREE.Geometry();
+    // grid_geom_upper = new THREE.Geometry();
+    grid_geom_lower = [];
+    grid_geom_upper = [];
 
     // Want to draw lines on the planes parallel
     // to axis[i] == const.
@@ -1508,18 +1682,18 @@ function make_axes(plot, params, append) {
 
         for (tick_ct = 0; tick_ct < axis_tick_values[j].length; tick_ct++) {
           // Lower plane:
-          vertex1 = new THREE.Vector3();
+          let vertex1 = new THREE.Vector3();
           vertex1[axes[i]] = -axis_scale_factor[i];
           vertex1[axes[k]] = -axis_scale_factor[k];
           vertex1[axes[j]] = tick_locations[j][tick_ct];
 
-          vertex2 = new THREE.Vector3();
+          let vertex2 = new THREE.Vector3();
           vertex2[axes[i]] = -axis_scale_factor[i];
           vertex2[axes[k]] = axis_scale_factor[k];
           vertex2[axes[j]] = tick_locations[j][tick_ct];
 
-          grid_geom_lower.vertices.push(vertex1);
-          grid_geom_lower.vertices.push(vertex2);
+          grid_geom_lower.push(vertex1);
+          grid_geom_lower.push(vertex2);
 
           // Upper plane:
           vertex1 = new THREE.Vector3();
@@ -1532,20 +1706,21 @@ function make_axes(plot, params, append) {
           vertex2[axes[k]] = axis_scale_factor[k];
           vertex2[axes[j]] = tick_locations[j][tick_ct];
 
-          grid_geom_upper.vertices.push(vertex1);
-          grid_geom_upper.vertices.push(vertex2);
+          grid_geom_upper.push(vertex1);
+          grid_geom_upper.push(vertex2);
         }
       }
     }
-
+    let g_upper = new THREE.BufferGeometry().setFromPoints( grid_geom_upper );
+    let g_lower = new THREE.BufferGeometry().setFromPoints( grid_geom_lower );
     plot.grid_lines_upper.push(
-      new THREE.LineSegments(grid_geom_upper, grid_material)
+      new THREE.LineSegments(g_upper, grid_material)
     );
+    
     plot.grid_lines_lower.push(
-      new THREE.LineSegments(grid_geom_lower, grid_material)
+      new THREE.LineSegments(g_lower, grid_material)
     );
   }
-
   plot.showing_upper_grid = [false, false, false];
   plot.showing_lower_grid = [false, false, false];
 
@@ -1555,257 +1730,255 @@ function make_axes(plot, params, append) {
 
   // Axis tick values.
 
-  var tick_font_size;
-  if (params.hasOwnProperty("tick_font_size")) {
-    tick_font_size = params.tick_font_size;
-  } else {
-    if (!plot.hasOwnProperty("tick_font_size")) {
-      tick_font_size = 28;
-    } else {
-      tick_font_size = plot.tick_font_size;
-    }
-  }
-  plot.tick_font_size = tick_font_size;
+  // var tick_font_size;
+  // if (params.hasOwnProperty("tick_font_size")) {
+  //   tick_font_size = params.tick_font_size;
+  // } else {
+  //   if (!plot.hasOwnProperty("tick_font_size")) {
+  //     tick_font_size = 28;
+  //   } else {
+  //     tick_font_size = plot.tick_font_size;
+  //   }
+  // }
+  // plot.tick_font_size = tick_font_size;
 
-  // In case we're on orthographic camera and the perspective fov hasn't updated:
-  if (plot.view_type == "orthographic") {
-    plot.persp_camera.fov =
-      Math.atan2(plot.ortho_camera.top, plot.camera_distance_scale) *
-      rad2deg *
-      2;
-  }
+  // // In case we're on orthographic camera and the perspective fov hasn't updated:
+  // if (plot.view_type == "orthographic") {
+  //   plot.persp_camera.fov =
+  //     Math.atan2(plot.ortho_camera.top, plot.camera_distance_scale) *
+  //     rad2deg *
+  //     2;
+  // }
 
-  var init_scale =
-    (2 *
-      tick_font_size *
-      plot.camera_distance_scale *
-      Math.tan((0.5 * plot.persp_camera.fov) / rad2deg)) /
-    plot.height;
+  // var init_scale =
+  //   (2 *
+  //     tick_font_size *
+  //     plot.camera_distance_scale *
+  //     Math.tan((0.5 * plot.persp_camera.fov) / rad2deg)) /
+  //   plot.height;
 
-  var axis_tick_gaps = [0.1, 0.1, 0.1];
-  if (params.hasOwnProperty("axis_tick_gaps")) {
-    axis_tick_gaps = JSON.parse(JSON.stringify(params.axis_tick_gaps));
-  } else {
-    if (plot.hasOwnProperty("axis_tick_gaps")) {
-      axis_tick_gaps = JSON.parse(JSON.stringify(plot.axis_tick_gaps));
-    }
-  }
-  plot.axis_tick_gaps = JSON.parse(JSON.stringify(axis_tick_gaps));
+  // var axis_tick_gaps = [0.1, 0.1, 0.1];
+  // if (params.hasOwnProperty("axis_tick_gaps")) {
+  //   axis_tick_gaps = JSON.parse(JSON.stringify(params.axis_tick_gaps));
+  // } else {
+  //   if (plot.hasOwnProperty("axis_tick_gaps")) {
+  //     axis_tick_gaps = JSON.parse(JSON.stringify(plot.axis_tick_gaps));
+  //   }
+  // }
+  // plot.axis_tick_gaps = JSON.parse(JSON.stringify(axis_tick_gaps));
 
-  if (!plot.hasOwnProperty("init_tick_scale")) {
-    // If we're changing data, we may already have this scale set,
-    // and it would get updated to the wrong fov.
-    plot.init_tick_scale = init_scale;
-  }
+  // if (!plot.hasOwnProperty("init_tick_scale")) {
+  //   // If we're changing data, we may already have this scale set,
+  //   // and it would get updated to the wrong fov.
+  //   plot.init_tick_scale = init_scale;
+  // }
 
-  var tick_font_color;
-  if (params.hasOwnProperty("tick_font_color")) {
-    if (typeof params.axis_font_color == "number") {
-      tick_font_color = hex_to_css_color(params.tick_font_color);
-    } else {
-      tick_font_color = params.tick_font_color;
-    }
-  } else {
-    if (!plot.hasOwnProperty("tick_font_color")) {
-      tick_font_color = "#FFFFFF";
-    } else {
-      tick_font_color = plot.tick_font_color;
-    }
-  }
-  plot.tick_font_color = tick_font_color;
+  // var tick_font_color;
+  // if (params.hasOwnProperty("tick_font_color")) {
+  //   if (typeof params.axis_font_color == "number") {
+  //     tick_font_color = hex_to_css_color(params.tick_font_color);
+  //   } else {
+  //     tick_font_color = params.tick_font_color;
+  //   }
+  // } else {
+  //   if (!plot.hasOwnProperty("tick_font_color")) {
+  //     tick_font_color = "#FFFFFF";
+  //   } else {
+  //     tick_font_color = plot.tick_font_color;
+  //   }
+  // }
+  // plot.tick_font_color = "#FFFFFF"//tick_font_color;
+  // var d3_formatter;
+  // var tick_ct = 0;
+  // plot.tick_text_planes = [];
+  // plot.num_ticks = [];
 
-  var d3_formatter;
-  var tick_ct = 0;
-  plot.tick_text_planes = [];
-  plot.num_ticks = [];
+  // var font;
+  // if (params.hasOwnProperty("font")) {
+  //   font = params.font;
+  // } else {
+  //   if (!plot.hasOwnProperty("font")) {
+  //     font = "Arial, sans-serif";
+  //   } else {
+  //     font = plot.font;
+  //   }
+  // }
+  // plot.font = font;
 
-  var font;
-  if (params.hasOwnProperty("font")) {
-    font = params.font;
-  } else {
-    if (!plot.hasOwnProperty("font")) {
-      font = "Arial, sans-serif";
-    } else {
-      font = plot.font;
-    }
-  }
-  plot.font = font;
+  // var bg_color;
+  // if (params.hasOwnProperty("background_color")) {
+  //   bg_color = params.background_color;
+  // } else {
+  //   if (!plot.hasOwnProperty("background_color")) {
+  //     bg_color = "#000000";
+  //   } else {
+  //     bg_color = plot.background_color;
+  //   }
+  // }
+  // plot.background_color = bg_color;
 
-  var bg_color;
-  if (params.hasOwnProperty("background_color")) {
-    bg_color = params.background_color;
-  } else {
-    if (!plot.hasOwnProperty("background_color")) {
-      bg_color = "#000000";
-    } else {
-      bg_color = plot.background_color;
-    }
-  }
-  plot.background_color = bg_color;
+  // //var bg_color_hex;
 
-  var bg_color_hex;
+  // // if (typeof bg_color == "string") {
+  // //   bg_color_hex = css_color_to_hex(bg_color, tiny_div);
+  // // } else {
+  // //   bg_color_hex = bg_color;
+  // //   bg_color = hex_to_css_color(bg_color);
+  // // }
 
-  if (typeof bg_color == "string") {
-    bg_color_hex = css_color_to_hex(bg_color, tiny_div);
-  } else {
-    bg_color_hex = bg_color;
-    bg_color = hex_to_css_color(bg_color);
-  }
+  // for (i = 0; i < 3; i++) {
+  //   plot.num_ticks.push(axis_tick_values[i].length);
 
-  for (i = 0; i < 3; i++) {
-    plot.num_ticks.push(axis_tick_values[i].length);
+  //   if (time_axis[i]) {
+  //     if (tick_formats[i] == "") {
+  //       d3_formatter = plot.scales[i].tickFormat(plot.num_ticks[i]);
+  //     } else {
+  //       d3_formatter = d3.timeFormat(tick_formats[i]);
+  //     }
+  //   } else {
+  //     d3_formatter = d3.format(tick_formats[i]);
+  //   }
 
-    if (time_axis[i]) {
-      if (tick_formats[i] == "") {
-        d3_formatter = plot.scales[i].tickFormat(plot.num_ticks[i]);
-      } else {
-        d3_formatter = d3.timeFormat(tick_formats[i]);
-      }
-    } else {
-      d3_formatter = d3.format(tick_formats[i]);
-    }
+  //   for (j = 0; j < axis_tick_values[i].length; j++) {
+  //     plot.tick_text_planes.push(
+  //       make_text_plane(
+  //         d3_formatter(axis_tick_values[i][j]),
+  //         font,
+  //         tick_font_size,
+  //         tick_font_color,
+  //         bg_color,
+  //         true,
+  //         plot.font_ratio
+  //       )
+  //     );
 
-    for (j = 0; j < axis_tick_values[i].length; j++) {
-      plot.tick_text_planes.push(
-        make_text_plane(
-          d3_formatter(axis_tick_values[i][j]),
-          font,
-          tick_font_size,
-          tick_font_color,
-          bg_color,
-          true,
-          plot.font_ratio
-        )
-      );
+  //     for (k = 0; k < 3; k++) {
+  //       if (i == k) {
+  //         plot.tick_text_planes[tick_ct].position[axes[k]] =
+  //           tick_locations[i][j];
+  //       } else {
+  //         plot.tick_text_planes[tick_ct].position[axes[k]] =
+  //           -axis_scale_factor[k] - axis_tick_gaps[k];
+  //       }
+  //     }
 
-      for (k = 0; k < 3; k++) {
-        if (i == k) {
-          plot.tick_text_planes[tick_ct].position[axes[k]] =
-            tick_locations[i][j];
-        } else {
-          plot.tick_text_planes[tick_ct].position[axes[k]] =
-            -axis_scale_factor[k] - axis_tick_gaps[k];
-        }
-      }
+  //     plot.tick_text_planes[tick_ct].rotation.copy(
+  //       get_current_camera(plot).rotation
+  //     );
+  //     plot.tick_text_planes[tick_ct].scale.set(init_scale, init_scale, 1);
 
-      plot.tick_text_planes[tick_ct].rotation.copy(
-        get_current_camera(plot).rotation
-      );
-      plot.tick_text_planes[tick_ct].scale.set(init_scale, init_scale, 1);
+  //     if (plot.show_ticks) {
+  //       plot.scene.add(plot.tick_text_planes[tick_ct]);
+  //     }
 
-      if (plot.show_ticks) {
-        plot.scene.add(plot.tick_text_planes[tick_ct]);
-      }
+  //     tick_ct++;
+  //   }
+  // }
 
-      tick_ct++;
-    }
-  }
+  // if (!plot.hasOwnProperty("show_axis_titles")) {
+  //   plot.show_axis_titles = params.hasOwnProperty("show_axis_titles")
+  //     ? JSON.parse(JSON.stringify(params.show_axis_titles))
+  //     : true;
+  // }
 
-  if (!plot.hasOwnProperty("show_axis_titles")) {
-    plot.show_axis_titles = params.hasOwnProperty("show_axis_titles")
-      ? JSON.parse(JSON.stringify(params.show_axis_titles))
-      : true;
-  }
+  // var axis_titles = params.hasOwnProperty("axis_titles")
+  //   ? JSON.parse(JSON.stringify(params.axis_titles))
+  //   : ["x", "y", "z"];
 
-  var axis_titles = params.hasOwnProperty("axis_titles")
-    ? JSON.parse(JSON.stringify(params.axis_titles))
-    : ["x", "y", "z"];
+  // var axis_title_gaps = [0.3, 0.3, 0.3];
+  // if (params.hasOwnProperty("axis_title_gaps")) {
+  //   axis_title_gaps = JSON.parse(JSON.stringify(params.axis_title_gaps));
+  // } else {
+  //   if (plot.hasOwnProperty("axis_title_gaps")) {
+  //     axis_title_gaps = JSON.parse(JSON.stringify(plot.axis_title_gaps));
+  //   }
+  // }
+  // plot.axis_title_gaps = JSON.parse(JSON.stringify(axis_title_gaps));
 
-  var axis_title_gaps = [0.3, 0.3, 0.3];
-  if (params.hasOwnProperty("axis_title_gaps")) {
-    axis_title_gaps = JSON.parse(JSON.stringify(params.axis_title_gaps));
-  } else {
-    if (plot.hasOwnProperty("axis_title_gaps")) {
-      axis_title_gaps = JSON.parse(JSON.stringify(plot.axis_title_gaps));
-    }
-  }
-  plot.axis_title_gaps = JSON.parse(JSON.stringify(axis_title_gaps));
+  // var axis_font_color;
+  // if (params.hasOwnProperty("axis_font_color")) {
+  //   axis_font_color = params.axis_font_color;
+  // } else {
+  //   if (!plot.hasOwnProperty("axis_font_color")) {
+  //     axis_font_color = "#FFFFFF";
+  //   } else {
+  //     axis_font_color = plot.axis_font_color;
+  //   }
+  // }
 
-  var axis_font_color;
-  if (params.hasOwnProperty("axis_font_color")) {
-    axis_font_color = params.axis_font_color;
-  } else {
-    if (!plot.hasOwnProperty("axis_font_color")) {
-      axis_font_color = "#FFFFFF";
-    } else {
-      axis_font_color = plot.axis_font_color;
-    }
-  }
+  // if (typeof axis_font_color == "number") {
+  //   axis_font_color = hex_to_css_color(params.axis_font_color);
+  // }
 
-  if (typeof axis_font_color == "number") {
-    axis_font_color = hex_to_css_color(params.axis_font_color);
-  }
+  // plot.axis_font_color = axis_font_color;
 
-  plot.axis_font_color = axis_font_color;
+  // plot.axis_text_planes = [];
 
-  plot.axis_text_planes = [];
+  // var axis_font_size;
+  // if (params.hasOwnProperty("axis_font_size")) {
+  //   axis_font_size = params.axis_font_size;
+  // } else {
+  //   if (!plot.hasOwnProperty("axis_font_size")) {
+  //     axis_font_size = 30;
+  //   } else {
+  //     axis_font_size = plot.axis_font_size;
+  //   }
+  // }
+  // plot.axis_font_size = axis_font_size;
 
-  var axis_font_size;
-  if (params.hasOwnProperty("axis_font_size")) {
-    axis_font_size = params.axis_font_size;
-  } else {
-    if (!plot.hasOwnProperty("axis_font_size")) {
-      axis_font_size = 30;
-    } else {
-      axis_font_size = plot.axis_font_size;
-    }
-  }
-  plot.axis_font_size = axis_font_size;
+  // init_scale =
+  //   (2 *
+  //     axis_font_size *
+  //     plot.camera_distance_scale *
+  //     Math.tan((0.5 * plot.persp_camera.fov) / rad2deg)) /
+  //   plot.height;
 
-  init_scale =
-    (2 *
-      axis_font_size *
-      plot.camera_distance_scale *
-      Math.tan((0.5 * plot.persp_camera.fov) / rad2deg)) /
-    plot.height;
+  // if (!plot.hasOwnProperty("init_axis_title_scale")) {
+  //   // If we're changing data, we may already have this scale set,
+  //   // and it would get updated to the wrong fov.
+  //   plot.init_axis_title_scale = init_scale;
+  // }
 
-  if (!plot.hasOwnProperty("init_axis_title_scale")) {
-    // If we're changing data, we may already have this scale set,
-    // and it would get updated to the wrong fov.
-    plot.init_axis_title_scale = init_scale;
-  }
+  // for (i = 0; i < 3; i++) {
+  //   plot.axis_text_planes.push(
+  //     make_text_plane(
+  //       axis_titles[i],
+  //       font,
+  //       axis_font_size,
+  //       axis_font_color,
+  //       bg_color,
+  //       true,
+  //       plot.font_ratio
+  //     )
+  //   );
 
-  for (i = 0; i < 3; i++) {
-    plot.axis_text_planes.push(
-      make_text_plane(
-        axis_titles[i],
-        font,
-        axis_font_size,
-        axis_font_color,
-        bg_color,
-        true,
-        plot.font_ratio
-      )
-    );
+  //   for (j = 0; j < 3; j++) {
+  //     if (i == j) {
+  //       plot.axis_text_planes[i].position[axes[j]] = 0;
+  //     } else {
+  //       plot.axis_text_planes[i].position[axes[j]] =
+  //         -axis_scale_factor[j] - axis_title_gaps[i];
+  //     }
+  //   }
 
-    for (j = 0; j < 3; j++) {
-      if (i == j) {
-        plot.axis_text_planes[i].position[axes[j]] = 0;
-      } else {
-        plot.axis_text_planes[i].position[axes[j]] =
-          -axis_scale_factor[j] - axis_title_gaps[i];
-      }
-    }
+  //   plot.axis_text_planes[i].rotation.copy(get_current_camera(plot).rotation);
+  //   plot.axis_text_planes[i].scale.set(init_scale, init_scale, 1);
 
-    plot.axis_text_planes[i].rotation.copy(get_current_camera(plot).rotation);
-    plot.axis_text_planes[i].scale.set(init_scale, init_scale, 1);
+  //   if (plot.show_axis_titles) {
+  //     plot.scene.add(plot.axis_text_planes[i]);
+  //   }
+  // }
 
-    if (plot.show_axis_titles) {
-      plot.scene.add(plot.axis_text_planes[i]);
-    }
-  }
+  // if (!plot.hasOwnProperty("dynamic_axis_labels")) {
+  //   plot.dynamic_axis_labels = params.hasOwnProperty("dynamic_axis_labels")
+  //     ? params.dynamic_axis_labels
+  //     : false;
+  // }
+  // if (plot.dynamic_axis_labels) {
+  //   update_axes(plot);
+  // }
 
-  if (!plot.hasOwnProperty("dynamic_axis_labels")) {
-    plot.dynamic_axis_labels = params.hasOwnProperty("dynamic_axis_labels")
-      ? params.dynamic_axis_labels
-      : false;
-  }
-
-  if (plot.dynamic_axis_labels) {
-    update_axes(plot);
-  }
-
-  plot.parent_div.removeChild(tiny_div);
+  //plot.parent_div.removeChild(tiny_div);
 }
 
 export {

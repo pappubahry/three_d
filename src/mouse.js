@@ -1,9 +1,9 @@
 import {get_current_camera, update_fov_from_ortho} from './camera.js';
 
 import {update_labels,update_gridlines,update_axes,get_scale_factor} from './display.js';
-import {tau,update_render} from './three_d.js'
+import {tau,rad2deg,update_render} from './three_d.js'
 import * as d3 from "https://cdn.skypack.dev/d3@7";
-
+import * as THREE from 'https://cdn.skypack.dev/three@0.129.0';
 
 function set_touch_coords(event, plot) {
   var num_touches = event.touches.length;
@@ -590,15 +590,15 @@ function mouse_zoom(event, plot) {
     pan_towards(plot, test_posn);
 
     // Re-scale text labels.
-    for (i = 0; i < plot.axis_text_planes.length; i++) {
-      plot.axis_text_planes[i].scale.x *= scale_ratio;
-      plot.axis_text_planes[i].scale.y *= scale_ratio;
-    }
+    // for (i = 0; i < plot.axis_text_planes.length; i++) {
+    //   plot.axis_text_planes[i].scale.x *= scale_ratio;
+    //   plot.axis_text_planes[i].scale.y *= scale_ratio;
+    // }
 
-    for (i = 0; i < plot.tick_text_planes.length; i++) {
-      plot.tick_text_planes[i].scale.x *= scale_ratio;
-      plot.tick_text_planes[i].scale.y *= scale_ratio;
-    }
+    // for (i = 0; i < plot.tick_text_planes.length; i++) {
+    //   plot.tick_text_planes[i].scale.x *= scale_ratio;
+    //   plot.tick_text_planes[i].scale.y *= scale_ratio;
+    // }
 
     if (plot.geom_type == "quad") {
       for (i = 0; i < plot.points.length; i++) {
@@ -719,17 +719,17 @@ function mouse_move_fn(event, plot) {
       }
     }
 
-    for (i = 0; i < plot.axis_text_planes.length; i++) {
-      plot.axis_text_planes[i].rotation.copy(
-        get_current_camera(plot).rotation
-      );
-    }
+    // for (i = 0; i < plot.axis_text_planes.length; i++) {
+    //   plot.axis_text_planes[i].rotation.copy(
+    //     get_current_camera(plot).rotation
+    //   );
+    // }
 
-    for (i = 0; i < plot.tick_text_planes.length; i++) {
-      plot.tick_text_planes[i].rotation.copy(
-        get_current_camera(plot).rotation
-      );
-    }
+    // for (i = 0; i < plot.tick_text_planes.length; i++) {
+    //   plot.tick_text_planes[i].rotation.copy(
+    //     get_current_camera(plot).rotation
+    //   );
+    // }
 
     if (plot.show_grid) {
       update_gridlines(plot);
@@ -941,7 +941,6 @@ function get_raycast_i(plot) {
   var i;
 
   var scale_factor = get_scale_factor(plot);
-
   var ray = new THREE.Ray();
   var intersects = [];
   var this_distance_sq, distance_sq;
@@ -949,7 +948,8 @@ function get_raycast_i(plot) {
   if (plot.plot_type == "scatter") {
     if (plot.geom_type == "point") {
       var matrixWorld = plot.points_merged.matrixWorld;
-      var inverseMatrix = new THREE.Matrix4().getInverse(matrixWorld);
+      var inverseMatrix = new THREE.Matrix4().copy( matrixWorld ).invert()
+      //var inverseMatrix = new THREE.Matrix4().getInverse(matrixWorld);
       ray.copy(plot.raycaster.ray).applyMatrix4(inverseMatrix);
 
       var positions =
@@ -1034,18 +1034,15 @@ function get_raycast_i(plot) {
     intersects = plot.raycaster.intersectObject(
       plot.surface
     );
-
     if (intersects.length > 0) {
       var nulls = plot.surface.geometry.attributes.null_point.array;
       var hides = plot.surface.geometry.attributes.hide_point.array;
-
       var i_vertex;
 
       for (i = 0; i < intersects.length; i++) {
         // The faceIndex goes up in 3's, by observation
         // (or by study of the three.js source code).
-        i_vertex = intersects[i].faceIndex;
-
+        i_vertex = intersects[i].face.a;
         if (!nulls[i_vertex] && !hides[i_vertex + 1] && !hides[i_vertex + 2]) {
           // Non-null triangle -- have to find the two possible
           // vertices, then work out which one is closest to the
@@ -1075,7 +1072,6 @@ function get_raycast_i(plot) {
 
           var i1 = Math.floor(i_quad / (ny - 1));
           var j1 = i_quad % (ny - 1);
-
           if (i_tri_local == 0) {
             cand_ij1 = [i1, j1];
             cand_ij2 = [i1 + 1, j1];
@@ -1089,12 +1085,14 @@ function get_raycast_i(plot) {
             cand_ij1 = [i1, j1 + 1];
             cand_ij2 = [i1, j1];
           } else {
+            
             console.warn("Raycast error; not supposed to happen.");
             return [-1, -1];
           }
 
           var matrixWorld = plot.surface.matrixWorld;
-          var inverseMatrix = new THREE.Matrix4().getInverse(matrixWorld);
+          var inverseMatrix = new THREE.Matrix4().copy( matrixWorld ).invert()
+          //var inverseMatrix = new THREE.Matrix4().getInverse(matrixWorld);
           ray.copy(plot.raycaster.ray).applyMatrix4(inverseMatrix);
 
           var dist1 = ray.distanceSqToPoint(posn1);
