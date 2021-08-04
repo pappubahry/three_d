@@ -247,41 +247,46 @@ function touch_end_fn(plot) {
   };
 }
 
-function mouse_down_fn(e,plot) {
-  plot.click_start_x = e.clientX;
-  plot.click_start_y = e.clientY;
+function mouse_down_fn(plot) {
+  return function (event) {
+    plot.click_start_x = event.clientX;
+    plot.click_start_y = event.clientY;
 
-  var click_type = e.button;
-  var ctrl = e.ctrlKey //|| ectrlKey;
-  var shiftkey = e.shiftKey;
-  if (click_type == 0) {
-    // Left mouse button.
-    if (ctrl) {
-      plot.mouse_operation = "pan";
-    } else if (shiftkey) {
-      plot.mouse_operation = "zoom";
-    } else {
-      plot.mouse_operation = "rotate";
-      set_normed_mouse_coords(e, plot);
-      if (plot.have_click) {
-        if (plot.plot_type == "scatter") {
-          plot.clicked_i = get_raycast_i(plot);
-        } else if (plot.plot_type == "surface") {
-          plot.clicked_i = get_raycast_i(plot).slice(0);
+    var click_type = event.button;
+    var ctrl = event.altKey || event.ctrlKey;
+    var shiftkey = event.shiftKey;
+
+    if (click_type == 0) {
+      // Left mouse button.
+      if (ctrl) {
+        plot.mouse_operation = "pan";
+      } else if (shiftkey) {
+        plot.mouse_operation = "zoom";
+      } else {
+        plot.mouse_operation = "rotate";
+        set_normed_mouse_coords(event, plot);
+
+        if (plot.have_click) {
+          if (plot.plot_type == "scatter") {
+            plot.clicked_i = get_raycast_i(plot);
+          } else if (plot.plot_type == "surface") {
+            plot.clicked_i = get_raycast_i(plot).slice(0);
+          }
         }
       }
     }
-  }
 
-  if (click_type == 1) {
-    // Middle mouse button.
-    plot.mouse_operation = "pan";
-  }
+    if (click_type == 1) {
+      // Middle mouse button.
+      plot.mouse_operation = "pan";
+    }
 
-  //event.preventDefault();
-};
+    event.preventDefault();
+  };
+}
 
-function mouse_up_fn(event,plot, from_mouseout) {
+function mouse_up_fn(plot, from_mouseout) {
+  return function (event) {
     plot.mouse_operation = "none";
     var need_update = false;
 
@@ -339,8 +344,7 @@ function mouse_up_fn(event,plot, from_mouseout) {
       if (plot.plot_type == "scatter") {
         if (this_clicked_i != plot.mouseover_i) {
           if (plot.have_mouseout) {
-            mouse_out_wrapper(plot, this_clicked_i, false);
-            //mouse_out_fn(event, plot, this_clicked_i, false);
+            mouse_out_fn(event, plot, this_clicked_i, false);
           }
 
           plot.mouseover_i = this_clicked_i;
@@ -359,8 +363,7 @@ function mouse_up_fn(event,plot, from_mouseout) {
           this_clicked_i[1] != plot.mouseover_i[1]
         ) {
           if (plot.have_mouseout) {
-            mouse_out_wrapper(plot, this_clicked_i, false);
-            //mouse_out_fn(event, plot, this_clicked_i, false);
+            mouse_out_fn(event, plot, this_clicked_i, false);
           }
 
           plot.mouseover_i = this_clicked_i.slice(0);
@@ -383,114 +386,9 @@ function mouse_up_fn(event,plot, from_mouseout) {
       update_render(plot);
     }
 
-    //event.preventDefault();
-  }
-
-
-// function mouse_up_fn(event,plot, from_mouseout) {
-//   return function (event) {
-//     plot.mouse_operation = "none";
-//     var need_update = false;
-
-//     if (plot.have_click || plot.have_mouseout) {
-//       need_update = true;
-//       set_normed_mouse_coords(event, plot);
-
-//       var this_clicked_i;
-
-//       if (plot.plot_type == "scatter") {
-//         if (from_mouseout) {
-//           this_clicked_i = -1;
-//         } else {
-//           this_clicked_i = get_raycast_i(plot);
-//         }
-//       } else if (plot.plot_type == "surface") {
-//         if (from_mouseout) {
-//           this_clicked_i = [-1, -1];
-//         } else {
-//           this_clicked_i = get_raycast_i(plot).slice(0);
-//         }
-//       }
-//     }
-
-//     if (plot.have_click) {
-//       if (plot.plot_type == "scatter") {
-//         if (this_clicked_i == plot.clicked_i && this_clicked_i >= 0) {
-//           plot.click(
-//             plot,
-//             plot.clicked_i,
-//             plot.points[this_clicked_i]
-//           );
-//         }
-
-//         plot.clicked_i = -1;
-//       } else if (plot.plot_type == "surface") {
-//         if (
-//           this_clicked_i[0] >= 0 &&
-//           this_clicked_i[0] == plot.clicked_i[0] &&
-//           this_clicked_i[1] == plot.clicked_i[1]
-//         ) {
-//           plot.click(
-//             plot,
-//             plot.clicked_i[0],
-//             plot.clicked_i[1],
-//             plot.mesh_points[this_clicked_i[0]][this_clicked_i[1]]
-//           );
-//         }
-
-//         plot.clicked_i = [-1, -1];
-//       }
-//     }
-
-//     if (plot.have_mouseout || plot.have_mouseover) {
-//       if (plot.plot_type == "scatter") {
-//         if (this_clicked_i != plot.mouseover_i) {
-//           if (plot.have_mouseout) {
-//             mouse_out_fn(event, plot, this_clicked_i, false);
-//           }
-
-//           plot.mouseover_i = this_clicked_i;
-
-//           if (this_clicked_i >= 0 && plot.have_mouseover) {
-//             plot.mouseover(
-//               plot,
-//               plot.mouseover_i,
-//               plot.points[this_clicked_i]
-//             );
-//           }
-//         }
-//       } else if (plot.plot_type == "surface") {
-//         if (
-//           this_clicked_i[0] != plot.mouseover_i[0] ||
-//           this_clicked_i[1] != plot.mouseover_i[1]
-//         ) {
-//           if (plot.have_mouseout) {
-//             mouse_out_fn(event, plot, this_clicked_i, false);
-//           }
-
-//           plot.mouseover_i = this_clicked_i.slice(0);
-
-//           if (this_clicked_i[0] >= 0 && plot.have_mouseover) {
-//             plot.mouseover(
-//               plot,
-//               plot.mouseover_i[0],
-//               plot.mouseover_i[1],
-//               plot.mesh_points[plot.mouseover_i[0]][
-//                 plot.mouseover_i[1]
-//               ]
-//             );
-//           }
-//         }
-//       }
-//     }
-
-//     if (need_update) {
-//       update_render(plot);
-//     }
-
-//     event.preventDefault();
-//   };
-// }
+    event.preventDefault();
+  };
+}
 
 function pan_towards(plot, new_posn) {
   var test_dist = new_posn.lengthSq();
@@ -510,12 +408,15 @@ function pan_towards(plot, new_posn) {
   get_current_camera(plot).position.add(dr);
 }
 
-function mouse_zoom_wrapper(event,plot) {
-  mouse_zoom(event, plot)
+function mouse_zoom_wrapper(plot) {
+  return function (event) {
+    mouse_zoom(event, plot);
+  };
 }
 
 function mouse_zoom(event, plot) {
   var scroll_amount = Math.sign(event.deltaY);
+
   var zoom_factor = 1.25;
 
   var i;
@@ -535,7 +436,7 @@ function mouse_zoom(event, plot) {
     var scale_ratio;
 
     var bounding_rect =
-      event.bounding_rect //plot.renderer.domElement.getBoundingClientRect();
+      plot.renderer.domElement.getBoundingClientRect();
 
     if (plot.view_type == "perspective") {
       var px2rad =
@@ -558,6 +459,7 @@ function mouse_zoom(event, plot) {
       var point_y_1 =
         (plot.camera_distance_scale * Math.tan(theta_1)) /
         Math.cos(phi_1);
+
       if (scroll_amount < 0) {
         if (plot.persp_camera.fov > plot.min_fov) {
           plot.persp_camera.fov /= zoom_factor;
@@ -730,487 +632,253 @@ function mouse_zoom(event, plot) {
   }
 }
 
-function mouse_move_wrapper(event,plot) {
+function mouse_move_wrapper(plot) {
+  return function (event) {
+    mouse_move_fn(event, plot);
+  };
+}
 
-    // Reasons for the differing signs on delta_x and
-    // delta_y are lost to the mists of history, but
-    // may have something to do with all the negative
-    // latitudes in my quaternion definitions.
-    var delta_x = -event.clientX + plot.click_start_x;
-    var delta_y = event.clientY - plot.click_start_y;
-  
-    set_normed_mouse_coords(event, plot);
-  
-    var i;
-  
-    if (plot.mouse_operation == "rotate") {
-      var perc_horiz = plot.mouse.x;
-      var perc_vert = -plot.mouse.y;
-  
-      var delta_lat =
-        (plot.rotation_dir *
-          delta_y *
-          (tau / 2) *
-          (1 - Math.abs(perc_horiz))) /
-        plot.height;
-      var delta_lon =
-        (plot.rotation_dir *
-          delta_x *
-          (tau / 2) *
-          (1 - Math.abs(perc_vert))) /
-        plot.width;
-      var delta_psi =
-        (delta_y * (tau / 2) * perc_horiz) / plot.width +
-        (delta_x * (tau / 2) * perc_vert) / plot.height;
-  
-      if (plot.rotate_less_with_zoom) {
-        var zoom_scale = Math.min(
-          1,
-          Math.tan((0.5 * plot.persp_camera.fov) / rad2deg)
-        );
-        delta_lat *= zoom_scale;
-        delta_lon *= zoom_scale;
-  
-        // The following is a fudge, based on the idea that if
-        // rotate_less_with_zoom, then we're probably inside a photosphere,
-        // and in that case I find that halving the psi rotation feels
-        // more comfortable.
-        delta_psi *= 0.5;
-      }
-  
-      var change_quat = new THREE.Quaternion()
-        .setFromEuler(get_current_camera(plot).rotation)
-        .multiply(
-          new THREE.Quaternion().setFromEuler(
-            new THREE.Euler(-delta_lat, delta_lon, delta_psi, "YXZ")
-          )
-        );
-  
-      get_current_camera(plot)
-        .position.set(0, 0, 1)
-        .applyQuaternion(change_quat)
-        .multiplyScalar(plot.camera_r)
-        .add(plot.camera_origin);
-  
-      plot.camera_up = new THREE.Vector3(0, 1, 0).applyQuaternion(
-        change_quat
+function mouse_move_fn(event, plot) {
+  // Reasons for the differing signs on delta_x and
+  // delta_y are lost to the mists of history, but
+  // may have something to do with all the negative
+  // latitudes in my quaternion definitions.
+  var delta_x = -event.clientX + plot.click_start_x;
+  var delta_y = event.clientY - plot.click_start_y;
+
+  set_normed_mouse_coords(event, plot);
+
+  var i;
+
+  if (plot.mouse_operation == "rotate") {
+    var perc_horiz = plot.mouse.x;
+    var perc_vert = -plot.mouse.y;
+
+    var delta_lat =
+      (plot.rotation_dir *
+        delta_y *
+        (tau / 2) *
+        (1 - Math.abs(perc_horiz))) /
+      plot.height;
+    var delta_lon =
+      (plot.rotation_dir *
+        delta_x *
+        (tau / 2) *
+        (1 - Math.abs(perc_vert))) /
+      plot.width;
+    var delta_psi =
+      (delta_y * (tau / 2) * perc_horiz) / plot.width +
+      (delta_x * (tau / 2) * perc_vert) / plot.height;
+
+    if (plot.rotate_less_with_zoom) {
+      var zoom_scale = Math.min(
+        1,
+        Math.tan((0.5 * plot.persp_camera.fov) / rad2deg)
       );
-  
-      get_current_camera(plot).rotation.setFromQuaternion(change_quat);
-  
+      delta_lat *= zoom_scale;
+      delta_lon *= zoom_scale;
+
+      // The following is a fudge, based on the idea that if
+      // rotate_less_with_zoom, then we're probably inside a photosphere,
+      // and in that case I find that halving the psi rotation feels
+      // more comfortable.
+      delta_psi *= 0.5;
+    }
+
+    var change_quat = new THREE.Quaternion()
+      .setFromEuler(get_current_camera(plot).rotation)
+      .multiply(
+        new THREE.Quaternion().setFromEuler(
+          new THREE.Euler(-delta_lat, delta_lon, delta_psi, "YXZ")
+        )
+      );
+
+    get_current_camera(plot)
+      .position.set(0, 0, 1)
+      .applyQuaternion(change_quat)
+      .multiplyScalar(plot.camera_r)
+      .add(plot.camera_origin);
+
+    plot.camera_up = new THREE.Vector3(0, 1, 0).applyQuaternion(
+      change_quat
+    );
+
+    get_current_camera(plot).rotation.setFromQuaternion(change_quat);
+
+    if (plot.plot_type == "scatter") {
+      if (plot.geom_type == "quad") {
+        for (i = 0; i < plot.points.length; i++) {
+          plot.points[i].rotation.copy(
+            get_current_camera(plot).rotation
+          );
+        }
+      }
+
+      if (plot.have_any_labels) {
+        update_labels(plot);
+      }
+    }
+
+    // for (i = 0; i < plot.axis_text_planes.length; i++) {
+    //   plot.axis_text_planes[i].rotation.copy(
+    //     get_current_camera(plot).rotation
+    //   );
+    // }
+
+    // for (i = 0; i < plot.tick_text_planes.length; i++) {
+    //   plot.tick_text_planes[i].rotation.copy(
+    //     get_current_camera(plot).rotation
+    //   );
+    // }
+
+    if (plot.show_grid) {
+      update_gridlines(plot);
+    }
+
+    if (plot.dynamic_axis_labels) {
+      update_axes(plot);
+    }
+
+    update_render(plot);
+  } else if (plot.mouse_operation == "pan") {
+    // Moving the mouse upwards will pan in the direction of camera_up.
+    // Moving the mouse sideways will pan in the direction camera_up x camera.position
+    // after a translate.
+
+    var x_factor, y_factor;
+
+    if (plot.view_type == "perspective") {
+      var dist_scale =
+        2 *
+        plot.camera_distance_scale *
+        Math.tan(get_current_camera(plot).fov / (2 * rad2deg));
+
+      x_factor = (dist_scale * delta_x) / plot.height;
+      y_factor = (dist_scale * delta_y) / plot.height;
+    } else {
+      // Orthographic.
+      var height = 2 * plot.ortho_camera.top;
+      var width = 2 * plot.ortho_camera.right;
+
+      x_factor = (delta_x * width) / plot.width;
+      y_factor = (delta_y * height) / plot.height;
+    }
+
+    var start_posn = new THREE.Vector3().copy(
+      get_current_camera(plot).position
+    );
+
+    var up_vector = new THREE.Vector3()
+      .copy(plot.camera_up)
+      .multiplyScalar(y_factor);
+
+    var posn_vector = new THREE.Vector3()
+      .subVectors(
+        get_current_camera(plot).position,
+        plot.camera_origin
+      )
+      .normalize();
+
+    var right_vector = new THREE.Vector3()
+      .crossVectors(plot.camera_up, posn_vector)
+      .multiplyScalar(x_factor);
+
+    var test_posn = new THREE.Vector3()
+      .copy(plot.camera_origin)
+      .add(up_vector)
+      .add(right_vector);
+
+    pan_towards(plot, test_posn);
+
+    if (plot.show_grid) {
+      update_gridlines(plot);
+    }
+
+    if (plot.dynamic_axis_labels) {
+      update_axes(plot);
+    }
+
+    plot.renderer.render(
+      plot.scene,
+      get_current_camera(plot)
+    );
+  } else if (plot.mouse_operation == "zoom") {
+    mouse_zoom(
+      {
+        deltaY: delta_y,
+        clientX: event.clientX,
+        clientY: event.clientY,
+        zoom_factor: 1.05,
+        preventDefault: function () {
+          return;
+        },
+      },
+      plot
+    );
+  } else if (plot.mouse_operation == "none") {
+    // Possible mouseover / mouseout event.
+    if (plot.have_mouseover || plot.have_mouseout) {
+      var mouseover_i;
+
       if (plot.plot_type == "scatter") {
-        if (plot.geom_type == "quad") {
-          for (i = 0; i < plot.points.length; i++) {
-            plot.points[i].rotation.copy(
-              get_current_camera(plot).rotation
+        mouseover_i = get_raycast_i(plot);
+      } else if (plot.plot_type == "surface") {
+        mouseover_i = get_raycast_i(plot).slice(0);
+      }
+
+      if (plot.plot_type == "scatter") {
+        if (mouseover_i != plot.mouseover_i) {
+          if (plot.have_mouseout) {
+            mouse_out_fn(event, plot, mouseover_i, false);
+          }
+
+          plot.mouseover_i = mouseover_i;
+
+          if (mouseover_i >= 0 && plot.have_mouseover) {
+            plot.mouseover(
+              plot,
+              mouseover_i,
+              plot.points[mouseover_i]
             );
           }
         }
-  
-        if (plot.have_any_labels) {
-          update_labels(plot);
+      } else if (plot.plot_type == "surface") {
+        if (
+          mouseover_i[0] != plot.mouseover_i[0] ||
+          mouseover_i[1] != plot.mouseover_i[1]
+        ) {
+          if (plot.have_mouseout) {
+            mouse_out_fn(event, plot, mouseover_i, false);
+          }
+
+          plot.mouseover_i = mouseover_i.slice(0);
+
+          if (mouseover_i[0] >= 0 && plot.have_mouseover) {
+            plot.mouseover(
+              plot,
+              mouseover_i[0],
+              mouseover_i[1],
+              plot.mesh_points[mouseover_i[0]][mouseover_i[1]]
+            );
+          }
         }
       }
-  
-      // for (i = 0; i < plot.axis_text_planes.length; i++) {
-      //   plot.axis_text_planes[i].rotation.copy(
-      //     get_current_camera(plot).rotation
-      //   );
-      // }
-  
-      // for (i = 0; i < plot.tick_text_planes.length; i++) {
-      //   plot.tick_text_planes[i].rotation.copy(
-      //     get_current_camera(plot).rotation
-      //   );
-      // }
-  
-      if (plot.show_grid) {
-        update_gridlines(plot);
-      }
-  
-      if (plot.dynamic_axis_labels) {
-        update_axes(plot);
-      }
-  
+
       update_render(plot);
-    } else if (plot.mouse_operation == "pan") {
-      // Moving the mouse upwards will pan in the direction of camera_up.
-      // Moving the mouse sideways will pan in the direction camera_up x camera.position
-      // after a translate.
-  
-      var x_factor, y_factor;
-  
-      if (plot.view_type == "perspective") {
-        var dist_scale =
-          2 *
-          plot.camera_distance_scale *
-          Math.tan(get_current_camera(plot).fov / (2 * rad2deg));
-  
-        x_factor = (dist_scale * delta_x) / plot.height;
-        y_factor = (dist_scale * delta_y) / plot.height;
-      } else {
-        // Orthographic.
-        var height = 2 * plot.ortho_camera.top;
-        var width = 2 * plot.ortho_camera.right;
-  
-        x_factor = (delta_x * width) / plot.width;
-        y_factor = (delta_y * height) / plot.height;
-      }
-  
-      var start_posn = new THREE.Vector3().copy(
-        get_current_camera(plot).position
-      );
-  
-      var up_vector = new THREE.Vector3()
-        .copy(plot.camera_up)
-        .multiplyScalar(y_factor);
-  
-      var posn_vector = new THREE.Vector3()
-        .subVectors(
-          get_current_camera(plot).position,
-          plot.camera_origin
-        )
-        .normalize();
-  
-      var right_vector = new THREE.Vector3()
-        .crossVectors(plot.camera_up, posn_vector)
-        .multiplyScalar(x_factor);
-  
-      var test_posn = new THREE.Vector3()
-        .copy(plot.camera_origin)
-        .add(up_vector)
-        .add(right_vector);
-  
-      pan_towards(plot, test_posn);
-  
-      if (plot.show_grid) {
-        update_gridlines(plot);
-      }
-  
-      if (plot.dynamic_axis_labels) {
-        update_axes(plot);
-      }
-  
-      plot.renderer.render(
-        plot.scene,
-        get_current_camera(plot)
-      );
-    } else if (plot.mouse_operation == "zoom") {
-      mouse_zoom(
-        {
-          deltaY: delta_y,
-          clientX: event.clientX,
-          clientY: event.clientY,
-          zoom_factor: 1.05,
-          preventDefault: function () {
-            return;
-          },
-        },
-        plot
-      );
-    } else if (plot.mouse_operation == "none") {
-      // Possible mouseover / mouseout event.
-      if (plot.have_mouseover || plot.have_mouseout) {
-        var mouseover_i;
-  
-        if (plot.plot_type == "scatter") {
-          mouseover_i = get_raycast_i(plot);
-        } else if (plot.plot_type == "surface") {
-          mouseover_i = get_raycast_i(plot).slice(0);
-        }
-  
-        if (plot.plot_type == "scatter") {
-          if (mouseover_i != plot.mouseover_i) {
-            if (plot.have_mouseout) {
-              mouse_out_wrapper(plot, mouseover_i, false);
-             //mouse_out_fn(event, plot, mouseover_i, false);
-            }
-  
-            plot.mouseover_i = mouseover_i;
-  
-            if (mouseover_i >= 0 && plot.have_mouseover) {
-              plot.mouseover(
-                plot,
-                mouseover_i,
-                plot.points[mouseover_i]
-              );
-            }
-          }
-        } else if (plot.plot_type == "surface") {
-          if (
-            mouseover_i[0] != plot.mouseover_i[0] ||
-            mouseover_i[1] != plot.mouseover_i[1]
-          ) {
-            if (plot.have_mouseout) {
-              mouse_out_wrapper(plot, mouseover_i, false);
-              //mouse_out_fn(event, plot, mouseover_i, false);
-            }
-  
-            plot.mouseover_i = mouseover_i.slice(0);
-  
-            if (mouseover_i[0] >= 0 && plot.have_mouseover) {
-              plot.mouseover(
-                plot,
-                mouseover_i[0],
-                mouseover_i[1],
-                plot.mesh_points[mouseover_i[0]][mouseover_i[1]]
-              );
-            }
-          }
-        }
-  
-        update_render(plot);
-      }
     }
-  
-    plot.click_start_x = event.clientX;
-    plot.click_start_y = event.clientY;
   }
 
-
-// function mouse_move_wrapper(plot) {
-//   return function (event) {
-//     mouse_move_fn(event, plot);
-//   };
-// }
-
-// function mouse_move_fn(event, plot) {
-//   // Reasons for the differing signs on delta_x and
-//   // delta_y are lost to the mists of history, but
-//   // may have something to do with all the negative
-//   // latitudes in my quaternion definitions.
-//   var delta_x = -event.clientX + plot.click_start_x;
-//   var delta_y = event.clientY - plot.click_start_y;
-
-//   set_normed_mouse_coords(event, plot);
-
-//   var i;
-
-//   if (plot.mouse_operation == "rotate") {
-//     var perc_horiz = plot.mouse.x;
-//     var perc_vert = -plot.mouse.y;
-
-//     var delta_lat =
-//       (plot.rotation_dir *
-//         delta_y *
-//         (tau / 2) *
-//         (1 - Math.abs(perc_horiz))) /
-//       plot.height;
-//     var delta_lon =
-//       (plot.rotation_dir *
-//         delta_x *
-//         (tau / 2) *
-//         (1 - Math.abs(perc_vert))) /
-//       plot.width;
-//     var delta_psi =
-//       (delta_y * (tau / 2) * perc_horiz) / plot.width +
-//       (delta_x * (tau / 2) * perc_vert) / plot.height;
-
-//     if (plot.rotate_less_with_zoom) {
-//       var zoom_scale = Math.min(
-//         1,
-//         Math.tan((0.5 * plot.persp_camera.fov) / rad2deg)
-//       );
-//       delta_lat *= zoom_scale;
-//       delta_lon *= zoom_scale;
-
-//       // The following is a fudge, based on the idea that if
-//       // rotate_less_with_zoom, then we're probably inside a photosphere,
-//       // and in that case I find that halving the psi rotation feels
-//       // more comfortable.
-//       delta_psi *= 0.5;
-//     }
-
-//     var change_quat = new THREE.Quaternion()
-//       .setFromEuler(get_current_camera(plot).rotation)
-//       .multiply(
-//         new THREE.Quaternion().setFromEuler(
-//           new THREE.Euler(-delta_lat, delta_lon, delta_psi, "YXZ")
-//         )
-//       );
-
-//     get_current_camera(plot)
-//       .position.set(0, 0, 1)
-//       .applyQuaternion(change_quat)
-//       .multiplyScalar(plot.camera_r)
-//       .add(plot.camera_origin);
-
-//     plot.camera_up = new THREE.Vector3(0, 1, 0).applyQuaternion(
-//       change_quat
-//     );
-
-//     get_current_camera(plot).rotation.setFromQuaternion(change_quat);
-
-//     if (plot.plot_type == "scatter") {
-//       if (plot.geom_type == "quad") {
-//         for (i = 0; i < plot.points.length; i++) {
-//           plot.points[i].rotation.copy(
-//             get_current_camera(plot).rotation
-//           );
-//         }
-//       }
-
-//       if (plot.have_any_labels) {
-//         update_labels(plot);
-//       }
-//     }
-
-//     // for (i = 0; i < plot.axis_text_planes.length; i++) {
-//     //   plot.axis_text_planes[i].rotation.copy(
-//     //     get_current_camera(plot).rotation
-//     //   );
-//     // }
-
-//     // for (i = 0; i < plot.tick_text_planes.length; i++) {
-//     //   plot.tick_text_planes[i].rotation.copy(
-//     //     get_current_camera(plot).rotation
-//     //   );
-//     // }
-
-//     if (plot.show_grid) {
-//       update_gridlines(plot);
-//     }
-
-//     if (plot.dynamic_axis_labels) {
-//       update_axes(plot);
-//     }
-
-//     update_render(plot);
-//   } else if (plot.mouse_operation == "pan") {
-//     // Moving the mouse upwards will pan in the direction of camera_up.
-//     // Moving the mouse sideways will pan in the direction camera_up x camera.position
-//     // after a translate.
-
-//     var x_factor, y_factor;
-
-//     if (plot.view_type == "perspective") {
-//       var dist_scale =
-//         2 *
-//         plot.camera_distance_scale *
-//         Math.tan(get_current_camera(plot).fov / (2 * rad2deg));
-
-//       x_factor = (dist_scale * delta_x) / plot.height;
-//       y_factor = (dist_scale * delta_y) / plot.height;
-//     } else {
-//       // Orthographic.
-//       var height = 2 * plot.ortho_camera.top;
-//       var width = 2 * plot.ortho_camera.right;
-
-//       x_factor = (delta_x * width) / plot.width;
-//       y_factor = (delta_y * height) / plot.height;
-//     }
-
-//     var start_posn = new THREE.Vector3().copy(
-//       get_current_camera(plot).position
-//     );
-
-//     var up_vector = new THREE.Vector3()
-//       .copy(plot.camera_up)
-//       .multiplyScalar(y_factor);
-
-//     var posn_vector = new THREE.Vector3()
-//       .subVectors(
-//         get_current_camera(plot).position,
-//         plot.camera_origin
-//       )
-//       .normalize();
-
-//     var right_vector = new THREE.Vector3()
-//       .crossVectors(plot.camera_up, posn_vector)
-//       .multiplyScalar(x_factor);
-
-//     var test_posn = new THREE.Vector3()
-//       .copy(plot.camera_origin)
-//       .add(up_vector)
-//       .add(right_vector);
-
-//     pan_towards(plot, test_posn);
-
-//     if (plot.show_grid) {
-//       update_gridlines(plot);
-//     }
-
-//     if (plot.dynamic_axis_labels) {
-//       update_axes(plot);
-//     }
-
-//     plot.renderer.render(
-//       plot.scene,
-//       get_current_camera(plot)
-//     );
-//   } else if (plot.mouse_operation == "zoom") {
-//     mouse_zoom(
-//       {
-//         deltaY: delta_y,
-//         clientX: event.clientX,
-//         clientY: event.clientY,
-//         zoom_factor: 1.05,
-//         preventDefault: function () {
-//           return;
-//         },
-//       },
-//       plot
-//     );
-//   } else if (plot.mouse_operation == "none") {
-//     // Possible mouseover / mouseout event.
-//     if (plot.have_mouseover || plot.have_mouseout) {
-//       var mouseover_i;
-
-//       if (plot.plot_type == "scatter") {
-//         mouseover_i = get_raycast_i(plot);
-//       } else if (plot.plot_type == "surface") {
-//         mouseover_i = get_raycast_i(plot).slice(0);
-//       }
-
-//       if (plot.plot_type == "scatter") {
-//         if (mouseover_i != plot.mouseover_i) {
-//           if (plot.have_mouseout) {
-//             mouse_out_wrapper(plot, mouseover_i, false);
-//            //mouse_out_fn(event, plot, mouseover_i, false);
-//           }
-
-//           plot.mouseover_i = mouseover_i;
-
-//           if (mouseover_i >= 0 && plot.have_mouseover) {
-//             plot.mouseover(
-//               plot,
-//               mouseover_i,
-//               plot.points[mouseover_i]
-//             );
-//           }
-//         }
-//       } else if (plot.plot_type == "surface") {
-//         if (
-//           mouseover_i[0] != plot.mouseover_i[0] ||
-//           mouseover_i[1] != plot.mouseover_i[1]
-//         ) {
-//           if (plot.have_mouseout) {
-//             mouse_out_wrapper(plot, mouseover_i, false);
-//             //mouse_out_fn(event, plot, mouseover_i, false);
-//           }
-
-//           plot.mouseover_i = mouseover_i.slice(0);
-
-//           if (mouseover_i[0] >= 0 && plot.have_mouseover) {
-//             plot.mouseover(
-//               plot,
-//               mouseover_i[0],
-//               mouseover_i[1],
-//               plot.mesh_points[mouseover_i[0]][mouseover_i[1]]
-//             );
-//           }
-//         }
-//       }
-
-//       update_render(plot);
-//     }
-//   }
-
-//   plot.click_start_x = event.clientX;
-//   plot.click_start_y = event.clientY;
-// }
+  plot.click_start_x = event.clientX;
+  plot.click_start_y = event.clientY;
+}
 
 function mouse_out_wrapper(plot, mouseover_i, do_render) {
+  return function (event) {
+    return mouse_out_fn(event, plot, mouseover_i, do_render);
+  };
+}
+
+function mouse_out_fn(event, plot, mouseover_i, do_render) {
   if (plot.plot_type == "scatter") {
     if (plot.mouseover_i >= 0) {
       plot.mouseout(
@@ -1240,52 +908,12 @@ function mouse_out_wrapper(plot, mouseover_i, do_render) {
     update_render(plot);
   }
 }
-
-
-
-// function mouse_out_wrapper(plot, mouseover_i, do_render) {
-//   return function (event) {
-//     return mouse_out_fn(event, plot, mouseover_i, do_render);
-//   };
-// }
-
-// function mouse_out_fn(event, plot, mouseover_i, do_render) {
-//   if (plot.plot_type == "scatter") {
-//     if (plot.mouseover_i >= 0) {
-//       plot.mouseout(
-//         plot,
-//         plot.mouseover_i,
-//         plot.points[plot.mouseover_i]
-//       );
-//     }
-
-//     plot.mouseover_i = mouseover_i;
-//   } else if (plot.plot_type == "surface") {
-//     if (plot.mouseover_i[0] >= 0) {
-//       plot.mouseout(
-//         plot,
-//         plot.mouseover_i[0],
-//         plot.mouseover_i[1],
-//         plot.mesh_points[plot.mouseover_i[0]][
-//           plot.mouseover_i[1]
-//         ]
-//       );
-//     }
-
-//     plot.mouseover_i = mouseover_i.slice(0);
-//   }
-
-//   if (do_render) {
-//     update_render(plot);
-//   }
-// }
-
 function set_normed_mouse_coords(event, plot) {
-  var bounding_rect = event.bounding_rect//plot.renderer.domElement.getBoundingClientRect();
+  var bounding_rect = plot.renderer.domElement.getBoundingClientRect();
   plot.mouse.x =
-    -1 + (2 * (event.clientX - bounding_rect.left)) / bounding_rect.width;
+    -1 + (2 * (event.clientX - bounding_rect.left)) / plot.width;
   plot.mouse.y =
-    1 - (2 * (event.clientY - bounding_rect.top)) / bounding_rect.height;
+    1 - (2 * (event.clientY - bounding_rect.top)) / plot.height;
   if (plot.mouse.x < -1) {
     plot.mouse.x = -1;
   }
@@ -1298,7 +926,6 @@ function set_normed_mouse_coords(event, plot) {
   if (plot.mouse.y > 1) {
     plot.mouse.y = 1;
   }
-  
 }
 
 
@@ -1317,6 +944,7 @@ function get_raycast_i(plot) {
   var ray = new THREE.Ray();
   var intersects = [];
   var this_distance_sq, distance_sq;
+
   if (plot.plot_type == "scatter") {
     if (plot.geom_type == "point") {
       var matrixWorld = plot.points_merged.matrixWorld;
@@ -1410,7 +1038,7 @@ function get_raycast_i(plot) {
       var nulls = plot.surface.geometry.attributes.null_point.array;
       var hides = plot.surface.geometry.attributes.hide_point.array;
       var i_vertex;
-      
+
       for (i = 0; i < intersects.length; i++) {
         // The faceIndex goes up in 3's, by observation
         // (or by study of the three.js source code).
@@ -1492,5 +1120,5 @@ export {
   mouse_zoom_wrapper,
   mouse_move_wrapper,
   mouse_out_wrapper,
-  set_normed_mouse_coords
+
 };

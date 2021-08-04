@@ -99,24 +99,21 @@ function check_surface_data_sizes(params) {
 	return {"data": true, "colors": have_colors, "other": have_other};
 }
 
-function make_surface(plot, params,canvas) {
-	//if (!check_webgl_fallback(params)) { return; }
-	plot.surface_list = [];
-	plot.surface_nr = 1;
-	let surf ={nr:plot.surface_nr,name:params.name}
-	plot.surface_list.push(surf)
-	
+function make_surface(plots, params) {
+	if (!check_webgl_fallback(params)) { return; }
 	let size_checks = check_surface_data_sizes(params);
 	if (!size_checks.data) { return; }
-	//let plot = plots[i_plot]
-	//plot.have_color_matrix = size_checks.colors;
-	//plot.have_other = size_checks.other;
-	//plots.push({});
-	//let i_plot = plots.length - 1;
-	//let plot = plots[i_plot];
-
 	
-	basic_plot_setup(plot,params,canvas);
+	
+	plots.push({});
+	let i_plot = plots.length - 1;
+	let plot = plots[i_plot];
+	plot.plot_type = "surface";
+	plot.parent_div = document.getElementById(params.div_id);
+	plot.have_color_matrix = size_checks.colors;
+	plot.have_other = size_checks.other;
+	
+	basic_plot_setup(plot, i_plot,params);
 	make_axes(plot, params);
 	
 	plot.surface_material = new THREE.ShaderMaterial({
@@ -154,10 +151,9 @@ function make_surface(plot, params,canvas) {
 	if ("uniform_mesh_color" in params) {
 		use_const_color = params.uniform_mesh_color | 0;
 	}
-
 	plot.mesh_material = new THREE.ShaderMaterial({
 		"uniforms": {
-			"use_const_color": {"type": "f",  "value": use_const_color},
+			"use_const_color": {"type": "f",  "value": 1},
 			"const_color":     {"type": "v4", "value": mesh_color}
 		},
 		"vertexShader":   shader_mesh_vertex,
@@ -165,31 +161,31 @@ function make_surface(plot, params,canvas) {
 	});
 	
 	let temp_obj = calculate_locations(plot, params);
-	make_mesh_points(plot,plot.surface_nr, params, temp_obj.plot_locations, temp_obj.null_points);
+	make_mesh_points(plot, params, temp_obj.plot_locations, temp_obj.null_points);
 	
 	custom_plot_listeners(plot, params);
 	update_render(plot);
 	plot.tried_initial_render = true;
-	plot.surface_nr +=1
-	//basic_plot_listeners(plot, i_plot,params);
+	
+	basic_plot_listeners(plot, i_plot,params);
 }
 
 
-function update_surface_input_data(surf, params, start_i, start_j, change_colors) {
+function update_surface_input_data(plot, params, start_i, start_j, change_colors) {
 	if (start_j === undefined) { start_j = 0; }
 	if (start_i === undefined) { start_i = 0; }
 	if (change_colors === undefined) { change_colors = true; }
 	
-	for (var i = start_i; i < surf.mesh_points.length; i++) {
-		for (var j = start_j; j < surf.mesh_points[i].length; j++) {
-			surf.mesh_points[i][j].input_data.i = i;
-			surf.mesh_points[i][j].input_data.j = j;
-			surf.mesh_points[i][j].input_data.x = params.data.x[i - start_i];
-			surf.mesh_points[i][j].input_data.y = params.data.y[j - start_j];
-			surf.mesh_points[i][j].input_data.z = params.data.z[i - start_i][j - start_j];
+	for (var i = start_i; i < plot.mesh_points.length; i++) {
+		for (var j = start_j; j < plot.mesh_points[i].length; j++) {
+			plot.mesh_points[i][j].input_data.i = i;
+			plot.mesh_points[i][j].input_data.j = j;
+			plot.mesh_points[i][j].input_data.x = params.data.x[i - start_i];
+			plot.mesh_points[i][j].input_data.y = params.data.y[j - start_j];
+			plot.mesh_points[i][j].input_data.z = params.data.z[i - start_i][j - start_j];
 			
 			if (change_colors) {
-				surf.mesh_points[i][j].input_data.color = params.data.color[i - start_i][j - start_j];
+				plot.mesh_points[i][j].input_data.color = params.data.color[i - start_i][j - start_j];
 			}
 			
 			// input_data.other is set in make_mesh_points().
@@ -417,14 +413,11 @@ function make_mesh_arrays(plot, params, plot_locations, null_points) {
 	return return_obj;
 }
 
-function make_mesh_points(plot, surface_nr,params, plot_locations, null_points) {
+function make_mesh_points(plot, params, plot_locations, null_points) {
 	var i, j;
 	var nx = plot_locations.x.length;
 	var ny = plot_locations.y.length;
-	var surf = plot.surface_list.find(function(surface, index) {
-		if(surface.nr == surface_nr)
-			return true;
-	});
+	
 	var surface_geom = new THREE.BufferGeometry();
 	var mesh_geom    = new THREE.BufferGeometry();
 	
@@ -434,52 +427,53 @@ function make_mesh_points(plot, surface_nr,params, plot_locations, null_points) 
 	surface_geom.setAttribute("color",      new THREE.BufferAttribute(array_obj.surface_colors,    4, true));
 	surface_geom.setAttribute("null_point", new THREE.BufferAttribute(array_obj.surface_nulls,     1, true));
 	surface_geom.setAttribute("hide_point", new THREE.BufferAttribute(array_obj.surface_hides,     1, true));
-	surf.surface = new THREE.Mesh(surface_geom, plot.surface_material);
-	//plot.surface = new THREE.Mesh(surface_geom, plot.surface_material);
+	
+	plot.surface = new THREE.Mesh(surface_geom, plot.surface_material);
+	
 	if (!("showing_surface" in plot)) {
 		plot.showing_surface = ("show_surface" in params) ? params.show_surface : true;
 	}
 	
-	if (plot.showing_surface) { plot.group.add(surf.surface); }
-	surf.visible = true;
+	if (plot.showing_surface) { plot.scene.add(plot.surface); }
+	
 	mesh_geom.setAttribute("position",   new THREE.BufferAttribute(array_obj.mesh_positions, 3, true));
 	mesh_geom.setAttribute("color",      new THREE.BufferAttribute(array_obj.mesh_colors,    4, true));
 	mesh_geom.setAttribute("null_point", new THREE.BufferAttribute(array_obj.mesh_nulls,     1, true));
 	mesh_geom.setAttribute("hide_point", new THREE.BufferAttribute(array_obj.mesh_hides,     1, true));
 	mesh_geom.setAttribute("hide_axis",  new THREE.BufferAttribute(array_obj.mesh_hide_axes, 1, true));
 	
-	//plot.surface_mesh = new THREE.LineSegments(mesh_geom, plot.mesh_material);
-	surf.surface_mesh = new THREE.LineSegments(mesh_geom, plot.mesh_material);
+	plot.surface_mesh = new THREE.LineSegments(mesh_geom, plot.mesh_material);
+	
 	if (!("showing_mesh" in plot)) {
 		plot.showing_mesh = ("show_mesh" in params) ? params.show_mesh : true;
 	}
 	
-	if (plot.showing_mesh) { plot.group.add(surf.surface_mesh); }
+	if (plot.showing_mesh) { plot.scene.add(plot.surface_mesh); }
 	
-	surf.mesh_points = [];
-	surf.hide_points = [];
-	surf.hide_mesh_points = [];
+	plot.mesh_points = [];
+	plot.hide_points = [];
+	plot.hide_mesh_points = [];
 	
 	// Update input data.
 	for (i = 0; i < nx; i++) {
-		surf.mesh_points.push([]);
-		surf.hide_points.push([]);
-		surf.hide_mesh_points.push([]);
+		plot.mesh_points.push([]);
+		plot.hide_points.push([]);
+		plot.hide_mesh_points.push([]);
 		
 		for (j = 0; j < ny; j++) {
-			surf.mesh_points[i].push({"input_data": {}});
+			plot.mesh_points[i].push({"input_data": {}});
 			if (plot.have_other) {
-				surf.mesh_points[i][j].input_data.other = JSON.parse(JSON.stringify(params.data.other[i][j]));
+				plot.mesh_points[i][j].input_data.other = JSON.parse(JSON.stringify(params.data.other[i][j]));
 			} else {
-				surf.mesh_points[i][j].input_data.other = {};
+				plot.mesh_points[i][j].input_data.other = {};
 			}
 			
-			surf.hide_points[i].push(0);
-			surf.hide_mesh_points[i].push(0);
+			plot.hide_points[i].push(0);
+			plot.hide_mesh_points[i].push(0);
 		}
 	}
 	
-	update_surface_input_data(surf, params, array_obj.start_i, array_obj.start_j);
+	update_surface_input_data(plot, params, array_obj.start_i, array_obj.start_j);
 }
 
 

@@ -818,29 +818,29 @@ function make_axes(plot, params, append) {
     }
   }
 
-  // if (plot.plot_type == "scatter") {
-  //   if (params.hasOwnProperty("size_scale_bound")) {
-  //     if (plot.size_exponent == 0) {
-  //       params.scaled_size_scale_bound = 1;
-  //     } else {
-  //       params.scaled_size_scale_bound = Math.pow(
-  //         params.size_scale_bound,
-  //         1 / plot.size_exponent
-  //       );
-  //     }
-  //   }
+  if (plot.plot_type == "scatter") {
+    if (params.hasOwnProperty("size_scale_bound")) {
+      if (plot.size_exponent == 0) {
+        params.scaled_size_scale_bound = 1;
+      } else {
+        params.scaled_size_scale_bound = Math.pow(
+          params.size_scale_bound,
+          1 / plot.size_exponent
+        );
+      }
+    }
 
-  //   for (i = 0; i < params.data.length; i++) {
-  //     if (plot.size_exponent == 0) {
-  //       params.data[i].scaled_size = 1;
-  //     } else {
-  //       params.data[i].scaled_size = Math.pow(
-  //         params.data[i].size,
-  //         1 / plot.size_exponent
-  //       );
-  //     }
-  //   }
-  // }
+    for (i = 0; i < params.data.length; i++) {
+      if (plot.size_exponent == 0) {
+        params.data[i].scaled_size = 1;
+      } else {
+        params.data[i].scaled_size = Math.pow(
+          params.data[i].size,
+          1 / plot.size_exponent
+        );
+      }
+    }
+  }
 
   // var tiny_div = document.createElement("div");
   // tiny_div.style.width = "1px";
@@ -955,10 +955,10 @@ function make_axes(plot, params, append) {
           temp_min1 = d3.min(params.data.z, function (d) {
             return d3.min(d);
           });
-          
           temp_max1 = d3.max(params.data.z, function (d) {
             return d3.max(d);
           });
+
           if (append) {
             temp_min2 = d3.min(plot.mesh_points, function (d) {
               return d3.min(d, function (d2) {
@@ -1637,6 +1637,7 @@ function make_axes(plot, params, append) {
       );
     }
   }
+  console.log(plot.axis_ticks)
   if (plot.show_ticks) {
     plot.scene.add(plot.axis_ticks[0][0]);
     plot.scene.add(plot.axis_ticks[1][0]);
