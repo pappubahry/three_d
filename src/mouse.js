@@ -362,7 +362,6 @@ function mouse_up_fn(event,plot, from_mouseout) {
             mouse_out_wrapper(plot, this_clicked_i, false);
             //mouse_out_fn(event, plot, this_clicked_i, false);
           }
-
           plot.mouseover_i = this_clicked_i.slice(0);
 
           if (this_clicked_i[0] >= 0 && plot.have_mouseover) {
@@ -370,7 +369,7 @@ function mouse_up_fn(event,plot, from_mouseout) {
               plot,
               plot.mouseover_i[0],
               plot.mouseover_i[1],
-              plot.mesh_points[plot.mouseover_i[0]][
+              plot.intersected_surf.mesh_points[plot.mouseover_i[0]][
                 plot.mouseover_i[1]
               ]
             );
@@ -742,7 +741,6 @@ function mouse_move_wrapper(event,plot) {
     set_normed_mouse_coords(event, plot);
   
     var i;
-  
     if (plot.mouse_operation == "rotate") {
       var perc_horiz = plot.mouse.x;
       var perc_vert = -plot.mouse.y;
@@ -910,22 +908,21 @@ function mouse_move_wrapper(event,plot) {
       );
     } else if (plot.mouse_operation == "none") {
       // Possible mouseover / mouseout event.
+      
       if (plot.have_mouseover || plot.have_mouseout) {
         var mouseover_i;
   
         if (plot.plot_type == "scatter") {
           mouseover_i = get_raycast_i(plot);
-        } else if (plot.plot_type == "surface") {
+        } else if (plot.plot_type == "surface") {         
           mouseover_i = get_raycast_i(plot).slice(0);
         }
-  
         if (plot.plot_type == "scatter") {
           if (mouseover_i != plot.mouseover_i) {
             if (plot.have_mouseout) {
               mouse_out_wrapper(plot, mouseover_i, false);
              //mouse_out_fn(event, plot, mouseover_i, false);
             }
-  
             plot.mouseover_i = mouseover_i;
   
             if (mouseover_i >= 0 && plot.have_mouseover) {
@@ -945,7 +942,6 @@ function mouse_move_wrapper(event,plot) {
               mouse_out_wrapper(plot, mouseover_i, false);
               //mouse_out_fn(event, plot, mouseover_i, false);
             }
-  
             plot.mouseover_i = mouseover_i.slice(0);
   
             if (mouseover_i[0] >= 0 && plot.have_mouseover) {
@@ -953,7 +949,7 @@ function mouse_move_wrapper(event,plot) {
                 plot,
                 mouseover_i[0],
                 mouseover_i[1],
-                plot.mesh_points[mouseover_i[0]][mouseover_i[1]]
+                plot.intersected_surf.mesh_points[mouseover_i[0]][mouseover_i[1]]
               );
             }
           }
@@ -1210,7 +1206,7 @@ function mouse_move_wrapper(event,plot) {
 //   plot.click_start_y = event.clientY;
 // }
 
-function mouse_out_wrapper(plot, mouseover_i, do_render) {
+function mouse_out_wrapper(plot,mouseover_i, do_render) {
   if (plot.plot_type == "scatter") {
     if (plot.mouseover_i >= 0) {
       plot.mouseout(
@@ -1227,12 +1223,11 @@ function mouse_out_wrapper(plot, mouseover_i, do_render) {
         plot,
         plot.mouseover_i[0],
         plot.mouseover_i[1],
-        plot.mesh_points[plot.mouseover_i[0]][
+        plot.intersected_surf.mesh_points[plot.mouseover_i[0]][
           plot.mouseover_i[1]
         ]
       );
     }
-
     plot.mouseover_i = mouseover_i.slice(0);
   }
 
@@ -1312,7 +1307,6 @@ function get_raycast_i(plot) {
     get_current_camera(plot)
   );
   var i;
-
   var scale_factor = get_scale_factor(plot);
   var ray = new THREE.Ray();
   var intersects = [];
@@ -1403,18 +1397,25 @@ function get_raycast_i(plot) {
       return -1;
     }
   } else if (plot.plot_type == "surface") {
-    intersects = plot.raycaster.intersectObject(
-      plot.surface
+    intersects = plot.raycaster.intersectObjects(
+      plot.group_surf.children
     );
+
     if (intersects.length > 0) {
-      var nulls = plot.surface.geometry.attributes.null_point.array;
-      var hides = plot.surface.geometry.attributes.hide_point.array;
+      intersects = intersects[0];
+      
+      plot.intersected_surf = plot.surface_list.find(function(surface, index) {
+        if(surface.surface.uuid == intersects.object.uuid)
+          return true;
+      });
+      //intersected_surf = intersected_surf.surface
+      var nulls = plot.intersected_surf.surface.geometry.attributes.null_point.array;
+      var hides = plot.intersected_surf.surface.geometry.attributes.hide_point.array;
       var i_vertex;
       
-      for (i = 0; i < intersects.length; i++) {
         // The faceIndex goes up in 3's, by observation
         // (or by study of the three.js source code).
-        i_vertex = intersects[i].face.a;
+        i_vertex = intersects.face.a;
         if (!nulls[i_vertex] && !hides[i_vertex + 1] && !hides[i_vertex + 2]) {
           // Non-null triangle -- have to find the two possible
           // vertices, then work out which one is closest to the
@@ -1427,7 +1428,7 @@ function get_raycast_i(plot) {
           i_tri_local = i_tri_all % 4;
 
           var positions =
-            plot.surface.geometry.attributes.position.array;
+          plot.intersected_surf.surface.geometry.attributes.position.array;
           var posn1 = new THREE.Vector3(
             positions[3 * i_vertex + 3],
             positions[3 * i_vertex + 4],
@@ -1439,8 +1440,8 @@ function get_raycast_i(plot) {
             positions[3 * i_vertex + 8]
           );
 
-          var nx = plot.mesh_points.length;
-          var ny = plot.mesh_points[0].length;
+          var nx = plot.intersected_surf.mesh_points.length;
+          var ny = plot.intersected_surf.mesh_points[0].length;
 
           var i1 = Math.floor(i_quad / (ny - 1));
           var j1 = i_quad % (ny - 1);
@@ -1462,7 +1463,7 @@ function get_raycast_i(plot) {
             return [-1, -1];
           }
 
-          var matrixWorld = plot.surface.matrixWorld;
+          var matrixWorld = plot.intersected_surf.surface.matrixWorld;
           var inverseMatrix = new THREE.Matrix4().copy( matrixWorld ).invert()
           //var inverseMatrix = new THREE.Matrix4().getInverse(matrixWorld);
           ray.copy(plot.raycaster.ray).applyMatrix4(inverseMatrix);
@@ -1476,7 +1477,7 @@ function get_raycast_i(plot) {
             return cand_ij2;
           }
         }
-      }
+      
     }
 
     return [-1, -1];

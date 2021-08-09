@@ -286,40 +286,49 @@ function update_axes(plot) {
   plot.renderer.render(plot.scene, get_current_camera(plot));
 }
 
-function toggle_ticks(plot) {
-  return function () {
-    var i, j;
-    if (plot.show_ticks) {
-      plot.show_ticks = false;
-      //plots[i_plot].scene.remove(plots[i_plot].axis_ticks);
-      for (i = 0; i < 3; i++) {
-        for (j = 0; j < 4; j++) {
-          plot.scene.remove(plot.axis_ticks[i][j]);
-        }
-      }
+function toggle_ticks(plot){
+  if (plot.show_ticks){
+    plot.scene.remove(plot.axis_ticks_group);
+    plot.show_ticks = false;
+  } else {
 
-      for (i = 0; i < plot.tick_text_planes.length; i++) {
-        plot.scene.remove(plot.tick_text_planes[i]);
-      }
-    } else {
-      plot.show_ticks = true;
-      //plots[i_plot].scene.add(plots[i_plot].axis_ticks);
-      if (plot.dynamic_axis_labels) {
-        update_axes(plot);
-      } else {
-        plot.scene.add(plot.axis_ticks[0][0]);
-        plot.scene.add(plot.axis_ticks[1][0]);
-        plot.scene.add(plot.axis_ticks[2][0]);
-      }
-
-      for (i = 0; i < plot.tick_text_planes.length; i++) {
-        plot.scene.add(plot.tick_text_planes[i]);
-      }
-    }
-
-    plot.renderer.render(plot.scene, get_current_camera(plot));
-  };
+  }
 }
+
+// function toggle_ticks(plot) {
+//   return function () {
+//     var i, j;
+//     if (plot.show_ticks) {
+//       plot.show_ticks = false;
+//       //plots[i_plot].scene.remove(plots[i_plot].axis_ticks);
+//       for (i = 0; i < 3; i++) {
+//         for (j = 0; j < 4; j++) {
+//           plot.scene.remove(plot.axis_ticks[i][j]);
+//         }
+//       }
+
+//       for (i = 0; i < plot.tick_text_planes.length; i++) {
+//         plot.scene.remove(plot.tick_text_planes[i]);
+//       }
+//     } else {
+//       plot.show_ticks = true;
+//       //plots[i_plot].scene.add(plots[i_plot].axis_ticks);
+//       if (plot.dynamic_axis_labels) {
+//         update_axes(plot);
+//       } else {
+//         plot.scene.add(plot.axis_ticks[0][0]);
+//         plot.scene.add(plot.axis_ticks[1][0]);
+//         plot.scene.add(plot.axis_ticks[2][0]);
+//       }
+
+//       for (i = 0; i < plot.tick_text_planes.length; i++) {
+//         plot.scene.add(plot.tick_text_planes[i]);
+//       }
+//     }
+
+//     plot.renderer.render(plot.scene, get_current_camera(plot));
+//   };
+// }
 
 function toggle_axis_titles(plot) {
   return function () {
@@ -341,7 +350,7 @@ function toggle_axis_titles(plot) {
 }
 
 function toggle_box(plot) {
-  return function () {
+
     if (plot.show_box) {
       plot.show_box = false;
       plot.scene.remove(plot.axis_box);
@@ -351,7 +360,7 @@ function toggle_box(plot) {
     }
 
     plot.renderer.render(plot.scene, get_current_camera(plot));
-  };
+
 }
 function toggle_camera(plot) {
   return function () {
@@ -769,11 +778,19 @@ function make_axes(plot, params, append) {
   // Sometimes this will be called when the plot is
   // first initialised; sometimes it will be when the
   // data is updated change_data() calls it.
-
+  //if (plot.surface_list.length >1)
+  let other_surfx = []
+  let other_surfy = []
+  let other_surfz = []
+  for (var i = 0; i < plot.surface_list.length; i++) {
+    other_surfx.push(...plot.surface_list[i].bounds.x)
+    other_surfy.push(...plot.surface_list[i].bounds.y)
+    other_surfz.push(...plot.surface_list[i].bounds.z)
+  }
+  const other_surf = {x:other_surfx,y:other_surfy,z:other_surfz}
   if (append === undefined) {
     append = false;
   }
-
   var i, j, k, l;
   var axes = ["x", "y", "z", "size"];
 
@@ -922,61 +939,56 @@ function make_axes(plot, params, append) {
         if (i < 2) {
           // x or y.
 
-          temp_min1 = d3.min(params.data[axes[i]]);
-          temp_max1 = d3.max(params.data[axes[i]]);
+          temp_min1 = d3.min([...params.data[axes[i]],...other_surf[axes[i]]]);
+          temp_max1 = d3.max([...params.data[axes[i]],...other_surf[axes[i]]]);
 
-          if (append) {
-            if (i == 0) {
-              // x.
-              temp_min2 = d3.min(plot.mesh_points, function (d) {
-                return d[0].input_data.x;
-              });
-              temp_max2 = d3.max(plot.mesh_points, function (d) {
-                return d[0].input_data.x;
-              });
-            } else if (i == 1) {
-              // y.
-              temp_min2 = d3.min(plot.mesh_points[0], function (d) {
-                return d.input_data.y;
-              });
-              temp_max2 = d3.max(plot.mesh_points[0], function (d) {
-                return d.input_data.y;
-              });
-            }
+          // if (append) {
+          //   if (i == 0) {
+          //     // x.
+          //     temp_min2 = d3.min(plot.mesh_points, function (d) {
+          //       return d[0].input_data.x;
+          //     });
+          //     temp_max2 = d3.max(plot.mesh_points, function (d) {
+          //       return d[0].input_data.x;
+          //     });
+          //   } else if (i == 1) {
+          //     // y.
+          //     temp_min2 = d3.min(plot.mesh_points[0], function (d) {
+          //       return d.input_data.y;
+          //     });
+          //     temp_max2 = d3.max(plot.mesh_points[0], function (d) {
+          //       return d.input_data.y;
+          //     });
+          //   }
 
-            plot.domains[i][0] = d3.min([temp_min1, temp_min2]);
-            plot.domains[i][1] = d3.max([temp_max1, temp_max2]);
-          } else {
+          //   plot.domains[i][0] = d3.min([temp_min1, temp_min2]);
+          //   plot.domains[i][1] = d3.max([temp_max1, temp_max2]);
+          // } else {
             plot.domains.push([temp_min1, temp_max1]);
-          }
+          // }
         } else if (i == 2) {
           // z.
-
-          temp_min1 = d3.min(params.data.z, function (d) {
-            return d3.min(d);
-          });
+          temp_min1 = d3.min([...params.data.z.flat(),...other_surf.z]);
           
-          temp_max1 = d3.max(params.data.z, function (d) {
-            return d3.max(d);
-          });
-          if (append) {
-            temp_min2 = d3.min(plot.mesh_points, function (d) {
-              return d3.min(d, function (d2) {
-                return d2.input_data.z;
-              });
-            });
-            temp_max2 = d3.max(plot.mesh_points, function (d) {
-              return d3.max(d, function (d2) {
-                return d2.input_data.z;
-              });
-            });
+          temp_max1 = d3.max([...params.data.z.flat(),...other_surf.z]);
+          // if (append) {
+          //   temp_min2 = d3.min(plot.mesh_points, function (d) {
+          //     return d3.min(d, function (d2) {
+          //       return d2.input_data.z;
+          //     });
+          //   });
+          //   temp_max2 = d3.max(plot.mesh_points, function (d) {
+          //     return d3.max(d, function (d2) {
+          //       return d2.input_data.z;
+          //     });
+          //   });
 
-            plot.domains[i][0] = d3.min([temp_min1, temp_min2]);
-            plot.domains[i][1] = d3.max([temp_max1, temp_max2]);
-          } else {
+          //   plot.domains[i][0] = d3.min([temp_min1, temp_min2]);
+          //   plot.domains[i][1] = d3.max([temp_max1, temp_max2]);
+          //   console.log("app")
+          // } else {
             plot.domains.push([temp_min1, temp_max1]);
-          }
-
+          // }
           if (!params.hasOwnProperty("color_scale_bounds")) {
             plot.color_domain = plot.domains[2].slice(0);
             if (time_axis[i]) {
@@ -1009,54 +1021,52 @@ function make_axes(plot, params, append) {
         }
       }
     }
+    // if (time_axis[i]) {
+    //   console.log("time")
+    //   // It looks like for a time axis, the domains[i] contains
+    //   // shallow copies of the min and max from the data, so go
+    //   // through JSON to prevent the input data values from being
+    //   // changed when the axis extents are changed (!).
+    //   plot.domains[i][0] = new Date(
+    //     JSON.parse(JSON.stringify(plot.domains[i][0]))
+    //   );
+    //   plot.domains[i][1] = new Date(
+    //     JSON.parse(JSON.stringify(plot.domains[i][1]))
+    //   );
 
-    if (time_axis[i]) {
-      // It looks like for a time axis, the domains[i] contains
-      // shallow copies of the min and max from the data, so go
-      // through JSON to prevent the input data values from being
-      // changed when the axis extents are changed (!).
-      plot.domains[i][0] = new Date(
-        JSON.parse(JSON.stringify(plot.domains[i][0]))
-      );
-      plot.domains[i][1] = new Date(
-        JSON.parse(JSON.stringify(plot.domains[i][1]))
-      );
-
-      this_axis_range =
-        plot.domains[i][1].getTime() - plot.domains[i][0].getTime();
-    } else {
+    //   this_axis_range =
+    //     plot.domains[i][1].getTime() - plot.domains[i][0].getTime();
+    // } else {
       this_axis_range = plot.domains[i][1] - plot.domains[i][0];
-    }
-
+    // }
     axis_ranges[i] = this_axis_range;
-
-    if (this_axis_range == 0) {
-      if (time_axis[i]) {
-        plot.domains[i][0].setTime(
-          plot.domains[i][0].getTime() - plot.null_width_time
-        );
-        plot.domains[i][1].setTime(
-          plot.domains[i][1].getTime() + plot.null_width_time
-        );
-      } else {
-        plot.domains[i][0] -= plot.null_width;
-        plot.domains[i][1] += plot.null_width;
-      }
-    } else {
-      if (adjust_domains) {
-        if (time_axis[i]) {
-          plot.domains[i][0].setTime(
-            plot.domains[i][0].getTime() - 0.1 * this_axis_range
-          );
-          plot.domains[i][1].setTime(
-            plot.domains[i][1].getTime() + 0.1 * this_axis_range
-          );
-        } else {
-          plot.domains[i][0] -= 0.1 * this_axis_range;
-          plot.domains[i][1] += 0.1 * this_axis_range;
-        }
-      }
-    }
+    // if (this_axis_range == 0) {
+    //   if (time_axis[i]) {
+    //     plot.domains[i][0].setTime(
+    //       plot.domains[i][0].getTime() - plot.null_width_time
+    //     );
+    //     plot.domains[i][1].setTime(
+    //       plot.domains[i][1].getTime() + plot.null_width_time
+    //     );
+    //   } else {
+    //     plot.domains[i][0] -= plot.null_width;
+    //     plot.domains[i][1] += plot.null_width;
+    //   }
+    // } else {
+    //   if (adjust_domains) {
+    //     if (time_axis[i]) {
+    //       plot.domains[i][0].setTime(
+    //         plot.domains[i][0].getTime() - 0.1 * this_axis_range
+    //       );
+    //       plot.domains[i][1].setTime(
+    //         plot.domains[i][1].getTime() + 0.1 * this_axis_range
+    //       );
+    //     } else {
+    //       plot.domains[i][0] -= 0.1 * this_axis_range;
+    //       plot.domains[i][1] += 0.1 * this_axis_range;
+    //     }
+    //   }
+    // }
 
     if (fix_axes && same_scale[i]) {
       if (this_axis_range > max_fixed_range) {
@@ -1065,25 +1075,25 @@ function make_axes(plot, params, append) {
     }
   }
 
-  if (plot.plot_type == "scatter") {
-    // Sphere min size extent is always zero.
-    if (params.hasOwnProperty("size_scale_bound")) {
-      plot.domains.push([0, params.scaled_size_scale_bound]);
-    } else {
-      temp_max1 = d3.max(params.data, function (d) {
-        return d.scaled_size;
-      });
+  // if (plot.plot_type == "scatter") {
+  //   // Sphere min size extent is always zero.
+  //   if (params.hasOwnProperty("size_scale_bound")) {
+  //     plot.domains.push([0, params.scaled_size_scale_bound]);
+  //   } else {
+  //     temp_max1 = d3.max(params.data, function (d) {
+  //       return d.scaled_size;
+  //     });
 
-      if (append) {
-        temp_max2 = d3.max(plot.points, function (d) {
-          return d.input_data.scaled_size;
-        });
-        plot.domains[3][1] = d3.max([temp_max1, temp_max2]);
-      } else {
-        plot.domains.push([0, temp_max1]);
-      }
-    }
-  }
+  //     if (append) {
+  //       temp_max2 = d3.max(plot.points, function (d) {
+  //         return d.input_data.scaled_size;
+  //       });
+  //       plot.domains[3][1] = d3.max([temp_max1, temp_max2]);
+  //     } else {
+  //       plot.domains.push([0, temp_max1]);
+  //     }
+  //   }
+  // }
 
   var axis_scale_factor = [1, 1, 1];
   for (i = 0; i < 3; i++) {
@@ -1092,30 +1102,30 @@ function make_axes(plot, params, append) {
     }
 
     if (fix_axes && specify_axis_lengths) {
+
       axis_scale_factor[i] = axis_length_ratios[i] / max_axis_ratio;
     }
 
     plot.ranges.push([-axis_scale_factor[i], axis_scale_factor[i]]);
   }
 
-  if (plot.plot_type == "scatter") {
-    if (params.hasOwnProperty("max_point_height")) {
-      plot.max_point_height = params.max_point_height;
-    } else {
-      if (!plot.hasOwnProperty("max_point_height")) {
-        plot.max_point_height = 25;
-      }
-    }
+  // if (plot.plot_type == "scatter") {
+  //   if (params.hasOwnProperty("max_point_height")) {
+  //     plot.max_point_height = params.max_point_height;
+  //   } else {
+  //     if (!plot.hasOwnProperty("max_point_height")) {
+  //       plot.max_point_height = 25;
+  //     }
+  //   }
 
-    plot.ranges.push([0, plot.max_point_height]);
-  }
+  //   plot.ranges.push([0, plot.max_point_height]);
+  // }
 
   var n_axes = 4;
   time_axis.push(false);
   if (plot.plot_type == "surface") {
     n_axes = 3;
   }
-
   for (i = 0; i < n_axes; i++) {
     if (time_axis[i]) {
       plot.scales.push(
@@ -1127,7 +1137,9 @@ function make_axes(plot, params, append) {
       );
     }
   }
+  plot.current_scale = [[-1,1], [-1,1], [-1,1]]
   var box_geom = []
+  
   //var box_geom = new THREE.Geometry();
   // LineSegments draws a segment between vertices 0 and 1, 2, and 3, 4 and 5, ....
   box_geom.push(
@@ -1311,189 +1323,8 @@ function make_axes(plot, params, append) {
       axis_scale_factor[2]
     )
   );
-  // Base:
-  // box_geom.vertices.push(
-  //   new THREE.Vector3(
-  //     -axis_scale_factor[0],
-  //     -axis_scale_factor[1],
-  //     -axis_scale_factor[2]
-  //   )
-  // );
-  // box_geom.vertices.push(
-  //   new THREE.Vector3(
-  //     -axis_scale_factor[0],
-  //     axis_scale_factor[1],
-  //     -axis_scale_factor[2]
-  //   )
-  // );
-
-  // box_geom.vertices.push(
-  //   new THREE.Vector3(
-  //     -axis_scale_factor[0],
-  //     axis_scale_factor[1],
-  //     -axis_scale_factor[2]
-  //   )
-  // );
-  // box_geom.vertices.push(
-  //   new THREE.Vector3(
-  //     axis_scale_factor[0],
-  //     axis_scale_factor[1],
-  //     -axis_scale_factor[2]
-  //   )
-  // );
-
-  // box_geom.vertices.push(
-  //   new THREE.Vector3(
-  //     axis_scale_factor[0],
-  //     axis_scale_factor[1],
-  //     -axis_scale_factor[2]
-  //   )
-  // );
-  // box_geom.vertices.push(
-  //   new THREE.Vector3(
-  //     axis_scale_factor[0],
-  //     -axis_scale_factor[1],
-  //     -axis_scale_factor[2]
-  //   )
-  // );
-
-  // box_geom.vertices.push(
-  //   new THREE.Vector3(
-  //     axis_scale_factor[0],
-  //     -axis_scale_factor[1],
-  //     -axis_scale_factor[2]
-  //   )
-  // );
-  // box_geom.vertices.push(
-  //   new THREE.Vector3(
-  //     -axis_scale_factor[0],
-  //     -axis_scale_factor[1],
-  //     -axis_scale_factor[2]
-  //   )
-  // );
-
-  // // Top:
-  // box_geom.vertices.push(
-  //   new THREE.Vector3(
-  //     -axis_scale_factor[0],
-  //     -axis_scale_factor[1],
-  //     axis_scale_factor[2]
-  //   )
-  // );
-  // box_geom.vertices.push(
-  //   new THREE.Vector3(
-  //     -axis_scale_factor[0],
-  //     axis_scale_factor[1],
-  //     axis_scale_factor[2]
-  //   )
-  // );
-
-  // box_geom.vertices.push(
-  //   new THREE.Vector3(
-  //     -axis_scale_factor[0],
-  //     axis_scale_factor[1],
-  //     axis_scale_factor[2]
-  //   )
-  // );
-  // box_geom.vertices.push(
-  //   new THREE.Vector3(
-  //     axis_scale_factor[0],
-  //     axis_scale_factor[1],
-  //     axis_scale_factor[2]
-  //   )
-  // );
-
-  // box_geom.vertices.push(
-  //   new THREE.Vector3(
-  //     axis_scale_factor[0],
-  //     axis_scale_factor[1],
-  //     axis_scale_factor[2]
-  //   )
-  // );
-  // box_geom.vertices.push(
-  //   new THREE.Vector3(
-  //     axis_scale_factor[0],
-  //     -axis_scale_factor[1],
-  //     axis_scale_factor[2]
-  //   )
-  // );
-
-  // box_geom.vertices.push(
-  //   new THREE.Vector3(
-  //     axis_scale_factor[0],
-  //     -axis_scale_factor[1],
-  //     axis_scale_factor[2]
-  //   )
-  // );
-  // box_geom.vertices.push(
-  //   new THREE.Vector3(
-  //     -axis_scale_factor[0],
-  //     -axis_scale_factor[1],
-  //     axis_scale_factor[2]
-  //   )
-  // );
-
-  // // Vertical edges:
-  // box_geom.vertices.push(
-  //   new THREE.Vector3(
-  //     -axis_scale_factor[0],
-  //     axis_scale_factor[1],
-  //     -axis_scale_factor[2]
-  //   )
-  // );
-  // box_geom.vertices.push(
-  //   new THREE.Vector3(
-  //     -axis_scale_factor[0],
-  //     axis_scale_factor[1],
-  //     axis_scale_factor[2]
-  //   )
-  // );
-
-  // box_geom.vertices.push(
-  //   new THREE.Vector3(
-  //     axis_scale_factor[0],
-  //     -axis_scale_factor[1],
-  //     -axis_scale_factor[2]
-  //   )
-  // );
-  // box_geom.vertices.push(
-  //   new THREE.Vector3(
-  //     axis_scale_factor[0],
-  //     -axis_scale_factor[1],
-  //     axis_scale_factor[2]
-  //   )
-  // );
-
-  // box_geom.vertices.push(
-  //   new THREE.Vector3(
-  //     axis_scale_factor[0],
-  //     axis_scale_factor[1],
-  //     -axis_scale_factor[2]
-  //   )
-  // );
-  // box_geom.vertices.push(
-  //   new THREE.Vector3(
-  //     axis_scale_factor[0],
-  //     axis_scale_factor[1],
-  //     axis_scale_factor[2]
-  //   )
-  // );
-
-  // box_geom.vertices.push(
-  //   new THREE.Vector3(
-  //     -axis_scale_factor[0],
-  //     -axis_scale_factor[1],
-  //     -axis_scale_factor[2]
-  //   )
-  // );
-  // box_geom.vertices.push(
-  //   new THREE.Vector3(
-  //     -axis_scale_factor[0],
-  //     -axis_scale_factor[1],
-  //     axis_scale_factor[2]
-  //   )
-  // );
   box_geom = new THREE.BufferGeometry().setFromPoints( box_geom );
+  box_geom.name="box"
   plot.axis_box = new THREE.LineSegments(box_geom, line_material);
 
   if (!plot.hasOwnProperty("show_box")) {
@@ -1511,36 +1342,23 @@ function make_axes(plot, params, append) {
   var tick_lengths = params.hasOwnProperty("tick_lengths")
     ? JSON.parse(JSON.stringify(params.tick_lengths))
     : [0.03, 0.03, 0.03];
-
+  plot.num_ticks = num_ticks;
+  plot.tick_lengths=tick_lengths;
   if (!plot.hasOwnProperty("show_ticks")) {
     plot.show_ticks = params.hasOwnProperty("show_ticks")
       ? JSON.parse(JSON.stringify(params.show_ticks))
       : true;
   }
-
   var tick_formats, dx, dec_places, sig_figs, max_abs_value;
   var axis_tick_values = [];
-  var axis_key;
-
+    var axis_key;
   for (i = 0; i < 3; i++) {
-    axis_key = axes[i] + "_tick_values";
-    if (params.hasOwnProperty(axis_key)) {
-      axis_tick_values.push(JSON.parse(JSON.stringify(params[axis_key])));
-    } else {
-      if (time_axis[i]) {
-        axis_tick_values.push(
-          d3.scaleTime().domain(plot.domains[i]).ticks(num_ticks[i])
-        );
-      } else {
+
         axis_tick_values.push(
           d3.scaleLinear().domain(plot.domains[i]).ticks(num_ticks[i])
         );
-      }
-    }
   }
-
   var this_dx;
-
   if (params.hasOwnProperty("tick_formats")) {
     tick_formats = JSON.parse(JSON.stringify(params.tick_formats));
   } else {
@@ -1610,7 +1428,6 @@ function make_axes(plot, params, append) {
           vertex1[axes[i]] = plot.scales[i](axis_tick_values[i][j]);
           vertex1[axes[i2]] = signs[k] * axis_scale_factor[i2];
           vertex1[axes[i3]] = signs[l] * axis_scale_factor[i3];
-
           vertex2 = new THREE.Vector3(
             tick_lengths[i],
             tick_lengths[i],
@@ -1638,9 +1455,11 @@ function make_axes(plot, params, append) {
     }
   }
   if (plot.show_ticks) {
-    plot.scene.add(plot.axis_ticks[0][0]);
-    plot.scene.add(plot.axis_ticks[1][0]);
-    plot.scene.add(plot.axis_ticks[2][0]);
+    plot.axis_ticks_group = new THREE.Group();
+    plot.axis_ticks_group.add(plot.axis_ticks[0][0]);
+    plot.axis_ticks_group.add(plot.axis_ticks[1][0]);
+    plot.axis_ticks_group.add(plot.axis_ticks[2][0]);
+    plot.scene.add(plot.axis_ticks_group);
   }
 
   // Gridlines.
@@ -1731,258 +1550,456 @@ function make_axes(plot, params, append) {
     update_gridlines(plot);
   }
 
-  // Axis tick values.
+}
 
-  // var tick_font_size;
-  // if (params.hasOwnProperty("tick_font_size")) {
-  //   tick_font_size = params.tick_font_size;
+
+function resize_axes(plot) {
+
+  var box_geom = []
+  //var box_geom = new THREE.Geometry();
+  // LineSegments draws a segment between vertices 0 and 1, 2, and 3, 4 and 5, ....
+  box_geom.push(
+    new THREE.Vector3(
+      plot.current_scale[0][0],
+      plot.current_scale[1][0],
+      plot.current_scale[2][0]
+    )
+  );
+  box_geom.push(
+    new THREE.Vector3(
+      plot.current_scale[0][0],
+      plot.current_scale[1][1],
+      plot.current_scale[2][0]
+    )
+  );
+
+  box_geom.push(
+    new THREE.Vector3(
+      plot.current_scale[0][0],
+      plot.current_scale[1][1],
+      plot.current_scale[2][0]
+    )
+  );
+  box_geom.push(
+    new THREE.Vector3(
+      plot.current_scale[0][1],
+      plot.current_scale[1][1],
+      plot.current_scale[2][0]
+    )
+  );
+
+  box_geom.push(
+    new THREE.Vector3(
+      plot.current_scale[0][1],
+      plot.current_scale[1][1],
+      plot.current_scale[2][0]
+    )
+  );
+  box_geom.push(
+    new THREE.Vector3(
+      plot.current_scale[0][1],
+      plot.current_scale[1][0],
+      plot.current_scale[2][0]
+    )
+  );
+
+  box_geom.push(
+    new THREE.Vector3(
+      plot.current_scale[0][1],
+      plot.current_scale[1][0],
+      plot.current_scale[2][0]
+    )
+  );
+  box_geom.push(
+    new THREE.Vector3(
+      plot.current_scale[0][0],
+      plot.current_scale[1][0],
+      plot.current_scale[2][0]
+    )
+  );
+
+  // Top:
+  box_geom.push(
+    new THREE.Vector3(
+      plot.current_scale[0][0],
+      plot.current_scale[1][0],
+      plot.current_scale[2][1]
+    )
+  );
+  box_geom.push(
+    new THREE.Vector3(
+      plot.current_scale[0][0],
+      plot.current_scale[1][1],
+      plot.current_scale[2][1]
+    )
+  );
+
+  box_geom.push(
+    new THREE.Vector3(
+      plot.current_scale[0][0],
+      plot.current_scale[1][1],
+      plot.current_scale[2][1]
+    )
+  );
+  box_geom.push(
+    new THREE.Vector3(
+      plot.current_scale[0][1],
+      plot.current_scale[1][1],
+      plot.current_scale[2][1]
+    )
+  );
+
+  box_geom.push(
+    new THREE.Vector3(
+      plot.current_scale[0][1],
+      plot.current_scale[1][1],
+      plot.current_scale[2][1]
+    )
+  );
+  box_geom.push(
+    new THREE.Vector3(
+      plot.current_scale[0][1],
+      plot.current_scale[1][0],
+      plot.current_scale[2][1]
+    )
+  );
+
+  box_geom.push(
+    new THREE.Vector3(
+      plot.current_scale[0][1],
+      plot.current_scale[1][0],
+      plot.current_scale[2][1]
+    )
+  );
+  box_geom.push(
+    new THREE.Vector3(
+      plot.current_scale[0][0],
+      plot.current_scale[1][0],
+      plot.current_scale[2][1]
+    )
+  );
+
+  // Vertical edges:
+  box_geom.push(
+    new THREE.Vector3(
+      plot.current_scale[0][0],
+      plot.current_scale[1][1],
+      plot.current_scale[2][0]
+    )
+  );
+  box_geom.push(
+    new THREE.Vector3(
+      plot.current_scale[0][0],
+      plot.current_scale[1][1],
+      plot.current_scale[2][1]
+    )
+  );
+
+  box_geom.push(
+    new THREE.Vector3(
+      plot.current_scale[0][1],
+      plot.current_scale[1][0],
+      plot.current_scale[2][0]
+    )
+  );
+  box_geom.push(
+    new THREE.Vector3(
+      plot.current_scale[0][1],
+      plot.current_scale[1][0],
+      plot.current_scale[2][1]
+    )
+  );
+
+  box_geom.push(
+    new THREE.Vector3(
+      plot.current_scale[0][1],
+      plot.current_scale[1][1],
+      plot.current_scale[2][0]
+    )
+  );
+  box_geom.push(
+    new THREE.Vector3(
+      plot.current_scale[0][1],
+      plot.current_scale[1][1],
+      plot.current_scale[2][1]
+    )
+  );
+
+  box_geom.push(
+    new THREE.Vector3(
+      plot.current_scale[0][0],
+      plot.current_scale[1][0],
+      plot.current_scale[2][0]
+    )
+  );
+  box_geom.push(
+    new THREE.Vector3(
+      plot.current_scale[0][0],
+      plot.current_scale[1][0],
+      plot.current_scale[2][1]
+    )
+  );
+  box_geom = new THREE.BufferGeometry().setFromPoints( box_geom );
+  
+  var line_material = new THREE.LineBasicMaterial({ color: "#000000" });
+  plot.axis_box = new THREE.LineSegments(box_geom, line_material);
+
+  if (!plot.hasOwnProperty("show_box")) {
+    plot.show_box = params.hasOwnProperty("show_box") ? params.show_box : true;
+  }
+
+  if (plot.show_box) {
+    plot.scene.add(plot.axis_box);
+  }
+
+  
+  // Axis ticks.
+
+
+  let all_x = []
+  let all_y = []
+  let all_z = []
+  for (let surf of plot.surface_list){
+    let bounds = surf.bounds
+    all_x.push(...bounds.x)
+    all_y.push(...bounds.y)
+    all_z.push(...bounds.z)
+    }
+  var bounds=[[d3.min(all_x),d3.max(all_x)],[d3.min(all_y),d3.max(all_y)],[d3.min(all_z),d3.max(all_z)]]
+  var num_ticks = plot.num_ticks
+  var tick_lengths = plot.tick_lengths
+
+
+  var n_axes = 3;
+//time_axis.push(false);
+// if (plot.plot_type == "surface") {
+//   n_axes = 3;
+// }
+var plot_scales = []
+for (i = 0; i < n_axes; i++) {
+  // if (time_axis[i]) {
+  //   plot_scales.push(
+  //     d3.scaleTime().domain(plot.current_scale[i]).range(bounds[i])
+  //   );
   // } else {
-  //   if (!plot.hasOwnProperty("tick_font_size")) {
-  //     tick_font_size = 28;
-  //   } else {
-  //     tick_font_size = plot.tick_font_size;
-  //   }
-  // }
-  // plot.tick_font_size = tick_font_size;
+    plot_scales.push(
+      d3.scaleLinear().domain(bounds[i]).range(plot.current_scale[i])
+    );
+ }
 
-  // // In case we're on orthographic camera and the perspective fov hasn't updated:
-  // if (plot.view_type == "orthographic") {
-  //   plot.persp_camera.fov =
-  //     Math.atan2(plot.ortho_camera.top, plot.camera_distance_scale) *
-  //     rad2deg *
-  //     2;
-  // }
-
-  // var init_scale =
-  //   (2 *
-  //     tick_font_size *
-  //     plot.camera_distance_scale *
-  //     Math.tan((0.5 * plot.persp_camera.fov) / rad2deg)) /
-  //   plot.height;
-
-  // var axis_tick_gaps = [0.1, 0.1, 0.1];
-  // if (params.hasOwnProperty("axis_tick_gaps")) {
-  //   axis_tick_gaps = JSON.parse(JSON.stringify(params.axis_tick_gaps));
-  // } else {
-  //   if (plot.hasOwnProperty("axis_tick_gaps")) {
-  //     axis_tick_gaps = JSON.parse(JSON.stringify(plot.axis_tick_gaps));
-  //   }
-  // }
-  // plot.axis_tick_gaps = JSON.parse(JSON.stringify(axis_tick_gaps));
-
-  // if (!plot.hasOwnProperty("init_tick_scale")) {
-  //   // If we're changing data, we may already have this scale set,
-  //   // and it would get updated to the wrong fov.
-  //   plot.init_tick_scale = init_scale;
-  // }
-
-  // var tick_font_color;
-  // if (params.hasOwnProperty("tick_font_color")) {
-  //   if (typeof params.axis_font_color == "number") {
-  //     tick_font_color = hex_to_css_color(params.tick_font_color);
-  //   } else {
-  //     tick_font_color = params.tick_font_color;
-  //   }
-  // } else {
-  //   if (!plot.hasOwnProperty("tick_font_color")) {
-  //     tick_font_color = "#FFFFFF";
-  //   } else {
-  //     tick_font_color = plot.tick_font_color;
-  //   }
-  // }
-  // plot.tick_font_color = "#FFFFFF"//tick_font_color;
-  // var d3_formatter;
-  // var tick_ct = 0;
-  // plot.tick_text_planes = [];
-  // plot.num_ticks = [];
-
-  // var font;
-  // if (params.hasOwnProperty("font")) {
-  //   font = params.font;
-  // } else {
-  //   if (!plot.hasOwnProperty("font")) {
-  //     font = "Arial, sans-serif";
-  //   } else {
-  //     font = plot.font;
-  //   }
-  // }
-  // plot.font = font;
-
-  // var bg_color;
-  // if (params.hasOwnProperty("background_color")) {
-  //   bg_color = params.background_color;
-  // } else {
-  //   if (!plot.hasOwnProperty("background_color")) {
-  //     bg_color = "#000000";
-  //   } else {
-  //     bg_color = plot.background_color;
-  //   }
-  // }
-  // plot.background_color = bg_color;
-
-  // //var bg_color_hex;
-
-  // // if (typeof bg_color == "string") {
-  // //   bg_color_hex = css_color_to_hex(bg_color, tiny_div);
-  // // } else {
-  // //   bg_color_hex = bg_color;
-  // //   bg_color = hex_to_css_color(bg_color);
-  // // }
-
-  // for (i = 0; i < 3; i++) {
-  //   plot.num_ticks.push(axis_tick_values[i].length);
-
-  //   if (time_axis[i]) {
-  //     if (tick_formats[i] == "") {
-  //       d3_formatter = plot.scales[i].tickFormat(plot.num_ticks[i]);
-  //     } else {
-  //       d3_formatter = d3.timeFormat(tick_formats[i]);
-  //     }
-  //   } else {
-  //     d3_formatter = d3.format(tick_formats[i]);
-  //   }
-
-  //   for (j = 0; j < axis_tick_values[i].length; j++) {
-  //     plot.tick_text_planes.push(
-  //       make_text_plane(
-  //         d3_formatter(axis_tick_values[i][j]),
-  //         font,
-  //         tick_font_size,
-  //         tick_font_color,
-  //         bg_color,
-  //         true,
-  //         plot.font_ratio
-  //       )
-  //     );
-
-  //     for (k = 0; k < 3; k++) {
-  //       if (i == k) {
-  //         plot.tick_text_planes[tick_ct].position[axes[k]] =
-  //           tick_locations[i][j];
-  //       } else {
-  //         plot.tick_text_planes[tick_ct].position[axes[k]] =
-  //           -axis_scale_factor[k] - axis_tick_gaps[k];
-  //       }
-  //     }
-
-  //     plot.tick_text_planes[tick_ct].rotation.copy(
-  //       get_current_camera(plot).rotation
-  //     );
-  //     plot.tick_text_planes[tick_ct].scale.set(init_scale, init_scale, 1);
-
-  //     if (plot.show_ticks) {
-  //       plot.scene.add(plot.tick_text_planes[tick_ct]);
-  //     }
-
-  //     tick_ct++;
-  //   }
-  // }
-
-  // if (!plot.hasOwnProperty("show_axis_titles")) {
-  //   plot.show_axis_titles = params.hasOwnProperty("show_axis_titles")
-  //     ? JSON.parse(JSON.stringify(params.show_axis_titles))
+  // if (!plot.hasOwnProperty("show_ticks")) {
+  //   plot.show_ticks = params.hasOwnProperty("show_ticks")
+  //     ? JSON.parse(JSON.stringify(params.show_ticks))
   //     : true;
   // }
 
-  // var axis_titles = params.hasOwnProperty("axis_titles")
-  //   ? JSON.parse(JSON.stringify(params.axis_titles))
-  //   : ["x", "y", "z"];
+  var tick_formats, dx, dec_places, sig_figs, max_abs_value;
+  var axis_tick_values = [];
+  var axis_key;
+  var i = 0
+  var axes = ["x", "y", "z", "size"];
+  for (i = 0; i < 3; i++) {
 
-  // var axis_title_gaps = [0.3, 0.3, 0.3];
-  // if (params.hasOwnProperty("axis_title_gaps")) {
-  //   axis_title_gaps = JSON.parse(JSON.stringify(params.axis_title_gaps));
-  // } else {
-  //   if (plot.hasOwnProperty("axis_title_gaps")) {
-  //     axis_title_gaps = JSON.parse(JSON.stringify(plot.axis_title_gaps));
-  //   }
-  // }
-  // plot.axis_title_gaps = JSON.parse(JSON.stringify(axis_title_gaps));
-
-  // var axis_font_color;
-  // if (params.hasOwnProperty("axis_font_color")) {
-  //   axis_font_color = params.axis_font_color;
-  // } else {
-  //   if (!plot.hasOwnProperty("axis_font_color")) {
-  //     axis_font_color = "#FFFFFF";
-  //   } else {
-  //     axis_font_color = plot.axis_font_color;
-  //   }
-  // }
-
-  // if (typeof axis_font_color == "number") {
-  //   axis_font_color = hex_to_css_color(params.axis_font_color);
-  // }
-
-  // plot.axis_font_color = axis_font_color;
-
-  // plot.axis_text_planes = [];
-
-  // var axis_font_size;
-  // if (params.hasOwnProperty("axis_font_size")) {
-  //   axis_font_size = params.axis_font_size;
-  // } else {
-  //   if (!plot.hasOwnProperty("axis_font_size")) {
-  //     axis_font_size = 30;
-  //   } else {
-  //     axis_font_size = plot.axis_font_size;
-  //   }
-  // }
-  // plot.axis_font_size = axis_font_size;
-
-  // init_scale =
-  //   (2 *
-  //     axis_font_size *
-  //     plot.camera_distance_scale *
-  //     Math.tan((0.5 * plot.persp_camera.fov) / rad2deg)) /
-  //   plot.height;
-
-  // if (!plot.hasOwnProperty("init_axis_title_scale")) {
-  //   // If we're changing data, we may already have this scale set,
-  //   // and it would get updated to the wrong fov.
-  //   plot.init_axis_title_scale = init_scale;
-  // }
-
-  // for (i = 0; i < 3; i++) {
-  //   plot.axis_text_planes.push(
-  //     make_text_plane(
-  //       axis_titles[i],
-  //       font,
-  //       axis_font_size,
-  //       axis_font_color,
-  //       bg_color,
-  //       true,
-  //       plot.font_ratio
-  //     )
-  //   );
-
-  //   for (j = 0; j < 3; j++) {
-  //     if (i == j) {
-  //       plot.axis_text_planes[i].position[axes[j]] = 0;
-  //     } else {
-  //       plot.axis_text_planes[i].position[axes[j]] =
-  //         -axis_scale_factor[j] - axis_title_gaps[i];
-  //     }
-  //   }
-
-  //   plot.axis_text_planes[i].rotation.copy(get_current_camera(plot).rotation);
-  //   plot.axis_text_planes[i].scale.set(init_scale, init_scale, 1);
-
-  //   if (plot.show_axis_titles) {
-  //     plot.scene.add(plot.axis_text_planes[i]);
-  //   }
-  // }
-
-  // if (!plot.hasOwnProperty("dynamic_axis_labels")) {
-  //   plot.dynamic_axis_labels = params.hasOwnProperty("dynamic_axis_labels")
-  //     ? params.dynamic_axis_labels
-  //     : false;
-  // }
-  // if (plot.dynamic_axis_labels) {
-  //   update_axes(plot);
-  // }
-
-  //plot.parent_div.removeChild(tiny_div);
+    axis_tick_values.push(
+      d3.scaleLinear().domain(bounds[i]).ticks(num_ticks[i])
+    );
 }
+  var this_dx;
+  // if (params.hasOwnProperty("tick_formats")) {
+  //   tick_formats = JSON.parse(JSON.stringify(params.tick_formats));
+  // } else {
+    tick_formats = ["", "", ""];
+  // }
+
+  for (i = 0; i < 3; i++) {
+    if (tick_formats[i] == "") {
+      // if (!time_axis[i]) {
+        dx = bounds[i][1] - bounds[i][0];
+
+        for (let j = 0; j < axis_tick_values[i].length - 1; j++) {
+          this_dx = axis_tick_values[i][j + 1] - axis_tick_values[i][j];
+          if (this_dx < dx) {
+            dx = this_dx;
+          }
+        }
+
+        if (dx < 10) {
+          dec_places = d3.precisionFixed(dx);
+          tick_formats[i] = "." + dec_places + "f";
+        } else {
+          max_abs_value = bounds[i][1];
+          if (Math.abs(bounds[i][0]) > Math.abs(max_abs_value)) {
+            max_abs_value = Math.abs(bounds[i][0]);
+          }
+
+          sig_figs = d3.precisionRound(dx, max_abs_value);
+          tick_formats[i] = "." + sig_figs + "r";
+        }
+      // } else {
+      //   // Handled later on when the d3.timeFormat is called?
+      // }
+    } else if (tick_formats[i] == "none") {
+      tick_formats[i] = "";
+    }
+  }
+
+  plot.axis_ticks = [];
+  var tick_vertices = [];
+  var tick_geom, vertex1, vertex2, i2, i3;
+
+  var tick_locations = [];
+
+  tick_geom = [];
+  var signs = [-1, 1];
+  var scale_loc = [0,1];
+  var axis_ct;
+  for (i = 0; i < 3; i++) {
+    tick_locations.push([]);
+    tick_geom.push([
+      [],
+      [],
+      [],
+      []
+    ])
+    plot.axis_ticks.push([]);
+    var tick_material = new THREE.LineBasicMaterial({ color: "#000000" });
+    i2 = (i + 1) % 3;
+    i3 = (i2 + 1) % 3;
+    for (let j = 0; j < axis_tick_values[i].length; j++) {
+      axis_ct = 0;
+      for (let k = 0; k < 2; k++) {
+        for (let l = 0; l < 2; l++) {
+          vertex1 = new THREE.Vector3(0, 0, 0);
+          vertex1[axes[i]] = plot_scales[i](axis_tick_values[i][j]);
+   
+            vertex1[axes[i2]] =  plot.current_scale[i2][scale_loc[k]];
+
+
+            vertex1[axes[i3]] =  plot.current_scale[i3][scale_loc[k]];
+
+          
+          vertex2 = new THREE.Vector3(
+            tick_lengths[i],
+            tick_lengths[i],
+            tick_lengths[i]
+          );
+          vertex2[axes[i]] = 0;
+          vertex2[axes[i2]] *= signs[k];
+          vertex2[axes[i3]] *= signs[l];
+          vertex2.add(vertex1);
+          tick_geom[i][axis_ct].push(vertex1);
+          tick_geom[i][axis_ct].push(vertex2);
+
+          axis_ct++;
+        }
+      }
+      tick_locations[i][j] = vertex1[axes[i]];
+    }
+  
+    for (let j = 0; j < 4; j++) {
+      let g = new THREE.BufferGeometry().setFromPoints( tick_geom[i][j]);
+      plot.axis_ticks[i].push(
+        new THREE.LineSegments(g, tick_material)
+      );
+    }
+  }
+  if (plot.show_ticks) {
+    plot.axis_ticks_group = new THREE.Group();
+    plot.axis_ticks_group.add(plot.axis_ticks[0][0]);
+    plot.axis_ticks_group.add(plot.axis_ticks[1][0]);
+    plot.axis_ticks_group.add(plot.axis_ticks[2][0]);
+    plot.scene.add(plot.axis_ticks_group);
+  }
+  // Gridlines.
+  var grid_color = "#000000"
+  // params.hasOwnProperty("grid_color")
+  //   ? params.grid_color
+  //   : 0x808080;
+  // if (typeof grid_color == "string") {
+  //   grid_color = css_color_to_hex(grid_color, tiny_div);
+  // }
+
+  plot.bounding_planes = [
+    plot.current_scale[0][1],
+    plot.current_scale[1][1],
+    plot.current_scale[2][1],
+  ];
+  var grid_material = new THREE.LineBasicMaterial({ color: grid_color });
+
+  if (!plot.hasOwnProperty("show_grid")) {
+    plot.show_grid = params.hasOwnProperty("show_grid")
+      ? params.show_grid
+      : true;
+  }
+
+  plot.grid_lines_upper = [];
+  plot.grid_lines_lower = [];
+  var grid_geom_lower, grid_geom_upper;
+  var tick_ct;
+  i = 0
+  for (i = 0; i < 3; i++) {
+    // grid_geom_lower = new THREE.Geometry();
+    // grid_geom_upper = new THREE.Geometry();
+    grid_geom_lower = [];
+    grid_geom_upper = [];
+
+    // Want to draw lines on the planes parallel
+    // to axis[i] == const.
+    let j = 0
+    for (j = 0; j < 3; j++) {
+      if (j != i) {
+        let k = ~(i | j) & 3;
+        for (tick_ct = 0; tick_ct < axis_tick_values[j].length; tick_ct++) {
+          // Lower plane:
+          let vertex1 = new THREE.Vector3();
+          vertex1[axes[i]] = plot.current_scale[i][0];
+          vertex1[axes[k]] = plot.current_scale[k][0];
+          vertex1[axes[j]] = tick_locations[j][tick_ct];
+
+          let vertex2 = new THREE.Vector3();
+          vertex2[axes[i]] = plot.current_scale[i][0];
+          vertex2[axes[k]] = plot.current_scale[k][1];
+          vertex2[axes[j]] = tick_locations[j][tick_ct];
+
+          grid_geom_lower.push(vertex1);
+          grid_geom_lower.push(vertex2);
+
+          // Upper plane:
+          vertex1 = new THREE.Vector3();
+          vertex1[axes[i]] = plot.current_scale[i][1];
+          vertex1[axes[k]] = plot.current_scale[k][0];
+          vertex1[axes[j]] = tick_locations[j][tick_ct];
+
+          vertex2 = new THREE.Vector3();
+          vertex2[axes[i]] = plot.current_scale[i][1];
+          vertex2[axes[k]] = plot.current_scale[k][1];
+          vertex2[axes[j]] = tick_locations[j][tick_ct];
+
+          grid_geom_upper.push(vertex1);
+          grid_geom_upper.push(vertex2);
+        }
+      }
+    }
+    let g_upper = new THREE.BufferGeometry().setFromPoints( grid_geom_upper );
+    let g_lower = new THREE.BufferGeometry().setFromPoints( grid_geom_lower );
+    plot.grid_lines_upper.push(
+      new THREE.LineSegments(g_upper, grid_material)
+    );
+    
+    plot.grid_lines_lower.push(
+      new THREE.LineSegments(g_lower, grid_material)
+    );
+  }
+  plot.showing_upper_grid = [false, false, false];
+  plot.showing_lower_grid = [false, false, false];
+
+  if (plot.show_grid) {
+    update_gridlines(plot);
+  }
+
+}
+
+
 
 export {
   update_labels,
@@ -2010,5 +2027,6 @@ export {
   hide_mesh_y,
   show_mesh_y,
   make_axes,
-  update_axes
+  update_axes,
+  resize_axes
 };

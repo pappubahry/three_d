@@ -10,9 +10,12 @@ import {	calculate_color,
 	css_color_to_hex,
 } from './color.js';
 
-
+import * as d3 from "https://cdn.skypack.dev/d3@7";
 import {
     make_axes,
+	toggle_box,
+	toggle_ticks,
+	resize_axes,
   } from './display.js'
 
 import {
@@ -103,7 +106,7 @@ function make_surface(plot, params,canvas) {
 	//if (!check_webgl_fallback(params)) { return; }
 	plot.surface_list = [];
 	plot.surface_nr = 1;
-	let surf ={nr:plot.surface_nr,name:params.name}
+	let surf ={nr:plot.surface_nr,name:params.name,scaled_bound:[[-1,1], [-1,1], [-1,1]]}
 	plot.surface_list.push(surf)
 	
 	let size_checks = check_surface_data_sizes(params);
@@ -114,8 +117,14 @@ function make_surface(plot, params,canvas) {
 	//plots.push({});
 	//let i_plot = plots.length - 1;
 	//let plot = plots[i_plot];
-
-	
+	var flatz = params.data.z.flat()
+	const p_x = params.data.x.filter(function (value) {
+		return !Number.isNaN(value)})
+	const p_y =  params.data.y.filter(function (value) {
+		return !Number.isNaN(value)})
+	const p_z = flatz.filter(function (value) {
+			return !Number.isNaN(value)})
+	surf.bounds={x:[Math.min(...p_x),Math.max(...p_x)],y:[Math.min(...p_y),Math.max(...p_y)],z:[Math.min(...p_z),Math.max(...p_z)]}
 	basic_plot_setup(plot,params,canvas);
 	make_axes(plot, params);
 	
@@ -174,6 +183,110 @@ function make_surface(plot, params,canvas) {
 	//basic_plot_listeners(plot, i_plot,params);
 }
 
+function add_surface(plot, params){
+	let size_checks = check_surface_data_sizes(params);
+	if (!size_checks.data) { return; }
+	if (plot.surface_list.map(surf => surf.name).includes(params.name)) {return} //no duplicated name
+	plot.show_box =true
+	toggle_box(plot)
+	plot.show_ticks =true
+	toggle_ticks(plot)
+	plot.axis_box.geometry.dispose()
+	plot.axis_box.material.dispose()
+	for (const ticks of plot.axis_ticks_group.children){
+		ticks.geometry.dispose()
+		ticks.material.dispose()
+	}
+	for (let i = 0; i < 3; i++){
+		plot.scene.remove(plot.grid_lines_upper[i]);
+		plot.scene.remove(plot.grid_lines_lower[i]);
+	}
+	plot.show_box =true
+	plot.show_ticks = true
+	let surf ={nr:plot.surface_nr,name:params.name}
+	var flatz = params.data.z.flat()
+	const p_x = params.data.x.filter(function (value) {
+		return !Number.isNaN(value)})
+	const p_y =  params.data.y.filter(function (value) {
+		return !Number.isNaN(value)})
+	const p_z = flatz.filter(function (value) {
+			return !Number.isNaN(value)})
+	surf.bounds={x:[Math.min(...p_x),Math.max(...p_x)],y:[Math.min(...p_y),Math.max(...p_y)],z:[Math.min(...p_z),Math.max(...p_z)]}
+	plot.surface_list.push(surf)
+
+	let temp_obj = calculate_locations(plot, params);
+	surf.scaled_bound=surf_scaled_bound(temp_obj.plot_locations)
+	update_plot_bounds("add",plot,surf.scaled_bound)
+	make_mesh_points(plot,plot.surface_nr, params, temp_obj.plot_locations, temp_obj.null_points);
+	resize_axes(plot)
+	update_render(plot);
+}
+
+function remove_surface (plot,name){
+	let surf = plot.surface_list.find(surf => surf.name === name);
+	if (surf === undefined) {return} //surface not found
+	let surf_ind = plot.surface_list.findIndex(surf => surf.name === name);
+	plot.show_box =true
+	toggle_box(plot)
+	plot.show_ticks =true
+	toggle_ticks(plot)
+	plot.axis_box.geometry.dispose()
+	plot.axis_box.material.dispose()
+	for (const ticks of plot.axis_ticks_group.children){
+		ticks.geometry.dispose()
+		ticks.material.dispose()
+	}
+	for (let i = 0; i < 3; i++){
+		plot.scene.remove(plot.grid_lines_upper[i]);
+		plot.scene.remove(plot.grid_lines_lower[i]);
+	}
+	plot.show_box =true
+	plot.show_ticks = true
+
+	const surf_obj=plot.scene.getObjectByProperty( "uuid",surf.surface.uuid )
+	plot.group_surf.remove(surf_obj)
+	surf_obj.geometry.dispose()
+	surf_obj.material.dispose()
+	const surf_mesh_obj =plot.scene.getObjectByProperty( "uuid",surf.surface_mesh.uuid )
+	plot.group_mesh.remove(surf_mesh_obj)
+	surf_mesh_obj.geometry.dispose()
+	surf_mesh_obj.material.dispose()
+	plot.surface_list.splice(surf_ind,1)
+
+	update_plot_bounds("remove",plot)
+	resize_axes(plot)
+	update_render(plot);
+}
+
+function surf_scaled_bound (surf_scaled_coord){
+	let x_max = d3.max(surf_scaled_coord.x)
+	let x_min = d3.min(surf_scaled_coord.x)
+	let y_max = d3.max(surf_scaled_coord.y)
+	let y_min = d3.min(surf_scaled_coord.y)
+	let z_flat= surf_scaled_coord.z.flat()
+	let z_max = d3.max(z_flat)
+	let z_min = d3.min(z_flat)
+	return [[x_min,x_max],[y_min,y_max],[z_min,z_max]]
+}
+
+function update_plot_bounds (operation, plot, surf_scaled_bound){
+	if (operation === "add"){
+		let plot_x_max = ((surf_scaled_bound[0][1]>plot.current_scale[0][1])?surf_scaled_bound[0][1]:plot.current_scale[0][1])
+		let plot_x_min = ((surf_scaled_bound[0][0]<plot.current_scale[0][0])?surf_scaled_bound[0][0]:plot.current_scale[0][0])
+		let plot_y_max = ((surf_scaled_bound[1][1]>plot.current_scale[1][1])?surf_scaled_bound[1][1]:plot.current_scale[1][1])
+		let plot_y_min = ((surf_scaled_bound[1][0]<plot.current_scale[1][0])?surf_scaled_bound[1][0]:plot.current_scale[1][0])
+		let plot_z_max = ((surf_scaled_bound[2][1]>plot.current_scale[2][1])?surf_scaled_bound[2][1]:plot.current_scale[2][1])
+		let plot_z_min = ((surf_scaled_bound[2][0]<plot.current_scale[2][0])?surf_scaled_bound[2][0]:plot.current_scale[2][0])
+		plot.current_scale = [[plot_x_min,plot_x_max],[plot_y_min,plot_y_max],[plot_z_min,plot_z_max]]
+		return
+	} else if (operation === "remove"){
+		let all_x = plot.surface_list.map(surf => surf.scaled_bound[0]).flat();
+		let all_y = plot.surface_list.map(surf => surf.scaled_bound[1]).flat();
+		let all_z = plot.surface_list.map(surf => surf.scaled_bound[2]).flat();
+		plot.current_scale = [[d3.min(all_x),d3.max(all_x)],[d3.min(all_y),d3.max(all_y)],[d3.min(all_z),d3.max(all_z)]]
+		return
+	}
+}
 
 function update_surface_input_data(surf, params, start_i, start_j, change_colors) {
 	if (start_j === undefined) { start_j = 0; }
@@ -421,15 +534,14 @@ function make_mesh_points(plot, surface_nr,params, plot_locations, null_points) 
 	var i, j;
 	var nx = plot_locations.x.length;
 	var ny = plot_locations.y.length;
-	var surf = plot.surface_list.find(function(surface, index) {
-		if(surface.nr == surface_nr)
-			return true;
-	});
+	
+
+	var surf = plot.surface_list.find(surf => surf.nr === surface_nr)
 	var surface_geom = new THREE.BufferGeometry();
 	var mesh_geom    = new THREE.BufferGeometry();
 	
 	var array_obj = make_mesh_arrays(plot, params, plot_locations, null_points);
-	
+
 	surface_geom.setAttribute("position",   new THREE.BufferAttribute(array_obj.surface_positions, 3, true));
 	surface_geom.setAttribute("color",      new THREE.BufferAttribute(array_obj.surface_colors,    4, true));
 	surface_geom.setAttribute("null_point", new THREE.BufferAttribute(array_obj.surface_nulls,     1, true));
@@ -440,7 +552,7 @@ function make_mesh_points(plot, surface_nr,params, plot_locations, null_points) 
 		plot.showing_surface = ("show_surface" in params) ? params.show_surface : true;
 	}
 	
-	if (plot.showing_surface) { plot.group.add(surf.surface); }
+	if (plot.showing_surface) { plot.group_surf.add(surf.surface); }
 	surf.visible = true;
 	mesh_geom.setAttribute("position",   new THREE.BufferAttribute(array_obj.mesh_positions, 3, true));
 	mesh_geom.setAttribute("color",      new THREE.BufferAttribute(array_obj.mesh_colors,    4, true));
@@ -454,7 +566,7 @@ function make_mesh_points(plot, surface_nr,params, plot_locations, null_points) 
 		plot.showing_mesh = ("show_mesh" in params) ? params.show_mesh : true;
 	}
 	
-	if (plot.showing_mesh) { plot.group.add(surf.surface_mesh); }
+	if (plot.showing_mesh) { plot.group_mesh.add(surf.surface_mesh); }
 	
 	surf.mesh_points = [];
 	surf.hide_points = [];
@@ -539,8 +651,8 @@ function use_uniform_mesh_color(plot) {
 }
 
 function surrounding_surface_quads(plot, i, j) {
-	var nx = plot.mesh_points.length;
-	var ny = plot.mesh_points[0].length;
+	var nx = plot.intersected_surf.mesh_points.length;
+	var ny = plot.intersected_surf.mesh_points[0].length;
 	
 	var i_quad = [-1, -1, -1, -1];
 	
@@ -742,6 +854,8 @@ export {check_surface_data_sizes,
     make_mesh_arrays,
     make_mesh_points,
     show_surface,
+	add_surface,
+	remove_surface,
     hide_surface,
     show_mesh,
     hide_mesh,

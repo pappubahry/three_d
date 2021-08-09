@@ -46,7 +46,7 @@ function set_surface_color_scale(plot, fn) {
 	
 	var nx = plot.mesh_points.length;
 	var ny = plot.mesh_points[0].length;
-	
+	console.log(nx)
 	for (var i = 0; i < nx; i++) {
 		for (var j = 0; j < ny; j++) {
 			var this_color = calculate_color(plot.mesh_points[i][j].input_data.z, plot.color_domain, plot.color_fn);
@@ -202,11 +202,11 @@ function set_surface_point_color(plot, i, j, col, permanent) {
 	if (permanent === undefined) { permanent = false; }
 	var rgb = hex_to_rgb_obj(col);
 	
-	var colors = plot.surface.geometry.attributes.color.array;
-	plot.surface.geometry.attributes.color.needsUpdate = true;
+	var colors = plot.intersected_surf.surface.geometry.attributes.color.array;
+	plot.intersected_surf.surface.geometry.attributes.color.needsUpdate = true;
 	
-	var nx = plot.mesh_points.length;
-	var ny = plot.mesh_points[0].length;
+	var nx = plot.intersected_surf.mesh_points.length;
+	var ny = plot.intersected_surf.mesh_points[0].length;
 	
 	// The mesh point (i, j) is at the corner of up to four quads.
 	var i_quad = surrounding_surface_quads(plot, i, j);
@@ -245,9 +245,9 @@ function set_surface_point_color(plot, i, j, col, permanent) {
 		
 		// If the colour being changed is of a currently null point,
 		// don't want to re-do interpolations.
-		non_null = 1 - (isNaN(plot.mesh_points[i][j].input_data.z) || (plot.mesh_points[i][j].input_data.z === null));
+		non_null = 1 - (isNaN(plot.intersected_surf.mesh_points[i][j].input_data.z) || (plot.intersected_surf.mesh_points[i][j].input_data.z === null));
 		
-		plot.mesh_points[i][j].input_data.color = col;
+		plot.intersected_surf.mesh_points[i][j].input_data.color = col;
 		
 		set_mesh_point_color(plot, i, j, col);
 		
@@ -285,13 +285,13 @@ function set_surface_point_color(plot, i, j, col, permanent) {
 		
 		if (i_quad[k] >= 0) {
 			if (permanent) {
-				rgb1 = hex_to_rgb_obj(plot.mesh_points[i1[k][0]][j1[k][0]].input_data.color);
-				rgb2 = hex_to_rgb_obj(plot.mesh_points[i1[k][1]][j1[k][1]].input_data.color);
-				rgb3 = hex_to_rgb_obj(plot.mesh_points[i1[k][2]][j1[k][2]].input_data.color);
+				rgb1 = hex_to_rgb_obj(plot.intersected_surf.mesh_points[i1[k][0]][j1[k][0]].input_data.color);
+				rgb2 = hex_to_rgb_obj(plot.intersected_surf.mesh_points[i1[k][1]][j1[k][1]].input_data.color);
+				rgb3 = hex_to_rgb_obj(plot.intersected_surf.mesh_points[i1[k][2]][j1[k][2]].input_data.color);
 				
-				non_null1 = 1 - 1*(isNaN(plot.mesh_points[i1[k][0]][j1[k][0]].input_data.z) || (plot.mesh_points[i1[k][0]][j1[k][0]].input_data.z === null));
-				non_null2 = 1 - 1*(isNaN(plot.mesh_points[i1[k][1]][j1[k][1]].input_data.z) || (plot.mesh_points[i1[k][1]][j1[k][1]].input_data.z === null));
-				non_null3 = 1 - 1*(isNaN(plot.mesh_points[i1[k][2]][j1[k][2]].input_data.z) || (plot.mesh_points[i1[k][2]][j1[k][2]].input_data.z === null));
+				non_null1 = 1 - 1*(isNaN(plot.intersected_surf.mesh_points[i1[k][0]][j1[k][0]].input_data.z) || (plot.intersected_surf.mesh_points[i1[k][0]][j1[k][0]].input_data.z === null));
+				non_null2 = 1 - 1*(isNaN(plot.intersected_surf.mesh_points[i1[k][1]][j1[k][1]].input_data.z) || (plot.intersected_surf.mesh_points[i1[k][1]][j1[k][1]].input_data.z === null));
+				non_null3 = 1 - 1*(isNaN(plot.intersected_surf.mesh_points[i1[k][2]][j1[k][2]].input_data.z) || (plot.intersected_surf.mesh_points[i1[k][2]][j1[k][2]].input_data.z === null));
 				
 				non_nulls = non_null + non_null1 + non_null2 + non_null3;
 				

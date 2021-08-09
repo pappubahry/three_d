@@ -15,7 +15,7 @@ function init_plot() {
 	 let div = document.getElementById(plot_div_id);
 	 div.innerHTML = div_html;
  } 
-  var params = {};
+  
   var plot_div_id = "div_plot_area";
 
 	let make_toggles= true;
@@ -93,12 +93,43 @@ function init_plot() {
 				label.appendChild(document.createTextNode(f.name));
 			}
 		}
-
-
-		// run code for dirHandle
+	  }
+	  //add dummy surface
+	  let add_surf = document.createElement("button");
+	  add_surf.innerHTML = "Add surface called miocene";
+	  toggle_div.appendChild(add_surf);
+	  add_surf.onclick = async function addsurf(){
+		let params = {};
+		params.data = {};
+		
+		// Grid with 6 values along x, 4 values along y:
+		params.data.x = [5, 6, 7, 8, 9, 10,11,12];
+		params.data.y = [0, 0.5, 1, 1.5,2,2.5];
+		params.name = 'miocene'
+		// z array has length 6, each entry an array of length 4:
+		params.data.z = [
+			[10, 10,10, 10,9,8],
+		  [10, 10,10, 10,9,8],
+		  [0, 0,0, 0,2,1],
+		  [0, 0,0, 0,2,1],
+		  [0, 0,0, 0,2,1],
+		  [0, 0,0, 0,2,1],
+		  [0, 0,0, 0,2,1],
+		  [0, 0,0, 0,2,1],
+		];
+		params.color_scale = "plasma"
+		w.postMessage({add_surf:params})
 	  }
 
+	  let remove_surf = document.createElement("button");
+	  remove_surf.innerHTML = "remove miocene";
+	  toggle_div.appendChild(remove_surf);
+	  remove_surf.onclick = async function remove_surf(){
 
+		w.postMessage({remove_surf:"miocene"})
+	  }
+
+	var params = {};
     params.data = {};
     
     // Grid with 6 values along x, 4 values along y:
@@ -115,13 +146,14 @@ function init_plot() {
       [11, 10, 10,  9]
     ];
 	params.color_scale = "plasma"
-	params.mouseover = true;
-	params.mouseout=true;
+
     // let plots = []
 	// plots.push({});
 	// //let i_plot = 0;
 	// let plot = plots[i_plot];
 	var plot = {}
+	plot.mouseover = true;
+	plot.mouseout=true;
 	plot.showing_mesh = true; //show grid mesh on surface
 	plot.plot_type = "surface";
 	plot.width = 1000

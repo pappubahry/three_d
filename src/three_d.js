@@ -68,6 +68,8 @@ import {check_surface_data_sizes,
     update_surface_input_data,
     make_mesh_arrays,
     make_mesh_points,
+	add_surface,
+	remove_surface,
 } from './surface.js'
 
 import {
@@ -254,7 +256,6 @@ function calculate_locations(plot, params, ignore_surface_colors) {
 				}
 			}
 		}
-		
 		if (!("color_fn" in plot)) {
 			if (!("color_scale" in params)) {
 				params.color_scale = "viridis";
@@ -1311,8 +1312,12 @@ function basic_plot_setup(plot, params,canvas) {
 	// First up, preparing the area.
 	//plot.container_height = plot.parent_div.offsetHeight;
 	plot.scene = new THREE.Scene();
-	plot.group = new THREE.Group()
-	plot.scene.add(plot.group);
+	plot.group_main = new THREE.Group();
+	plot.group_surf= new THREE.Group();
+	plot.group_mesh= new THREE.Group();
+	plot.group_main.add(plot.group_surf);
+	plot.group_main.add(plot.group_mesh);
+	plot.scene.add(plot.group_main);
 	canvas.style = { width: 0, height: 0 }
 	plot.renderer = new THREE.WebGLRenderer({"canvas":canvas,"antialias": true});
 	//let pixelRatio=window.devicePixelRatio ? window.devicePixelRatio : 1
@@ -1649,6 +1654,7 @@ function basic_plot_listeners(plot, i_plot,params) {
 }
 
 function custom_plot_listeners(plot, params) {
+	plot.mouse_operation = "none"
 	plot.have_mouseover = false;
 	plot.have_mouseout = false;
 	plot.have_click = false;
@@ -1668,21 +1674,21 @@ function custom_plot_listeners(plot, params) {
 	// 	}
 	// }
 	if (possible_events) {
-		if ("mouseover" in params) {
+		if ("mouseover" in plot) {
 			plot.have_mouseover = true;
 			plot.mouseover = function(i_plot, i, j, d) {
 				set_surface_point_color(i_plot, i, j, 0xFFFFFF); //highlight point white
 			}
 		}
 		
-		if ("mouseout" in params) {
+		if ("mouseout" in plot) {
 			plot.have_mouseout = true;
 			plot.mouseout = function(i_plot, i, j, d) {
 				set_surface_point_color(i_plot, i, j, d.input_data.color);
 			}
 		}
 		
-		if ("click" in params) {
+		if ("click" in plot) {
 			plot.have_click = true;
 			plot.click = params.click;
 		}
@@ -1709,6 +1715,8 @@ export {get_i_plot,
 	basic_plot_listeners,
 	custom_plot_listeners,
 	make_surface,
+	add_surface,
+	remove_surface,
 	tau,
 	rad2deg,
 	touch_start_fn,
