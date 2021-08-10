@@ -888,9 +888,9 @@ function make_axes(plot, params, append) {
   var this_domain;
   var temp_min1, temp_max1, temp_min2, temp_max2;
 
-  if (!append) {
+  // if (!append) {
     plot.domains = [];
-  }
+  // }
   plot.ranges = [];
   plot.scales = [];
 
@@ -1067,7 +1067,7 @@ function make_axes(plot, params, append) {
     //     }
     //   }
     // }
-
+    
     if (fix_axes && same_scale[i]) {
       if (this_axis_range > max_fixed_range) {
         max_fixed_range = this_axis_range;
@@ -1402,7 +1402,7 @@ function make_axes(plot, params, append) {
   var tick_geom, vertex1, vertex2, i2, i3;
 
   var tick_locations = [];
-
+  var label_locations = [];
   tick_geom = [];
   var signs = [-1, 1];
 
@@ -1410,6 +1410,7 @@ function make_axes(plot, params, append) {
 
   for (i = 0; i < 3; i++) {
     tick_locations.push([]);
+    label_locations.push([]);
     tick_geom.push([
       [],
       [],
@@ -1433,17 +1434,18 @@ function make_axes(plot, params, append) {
             tick_lengths[i],
             tick_lengths[i]
           );
+            
           vertex2[axes[i]] = 0;
           vertex2[axes[i2]] *= signs[k];
           vertex2[axes[i3]] *= signs[l];
           vertex2.add(vertex1);
-
           tick_geom[i][axis_ct].push(vertex1);
           tick_geom[i][axis_ct].push(vertex2);
 
           axis_ct++;
         }
       }
+
       tick_locations[i][j] = vertex1[axes[i]];
     }
     
@@ -1461,6 +1463,12 @@ function make_axes(plot, params, append) {
     plot.axis_ticks_group.add(plot.axis_ticks[2][0]);
     plot.scene.add(plot.axis_ticks_group);
   }
+  
+
+
+//labels
+axis_labels(plot,tick_geom,axis_tick_values)
+
 
   // Gridlines.
   var grid_color = "#000000"
@@ -1910,6 +1918,8 @@ for (i = 0; i < n_axes; i++) {
     plot.axis_ticks_group.add(plot.axis_ticks[2][0]);
     plot.scene.add(plot.axis_ticks_group);
   }
+  //labels
+  axis_labels(plot,tick_geom,axis_tick_values)
   // Gridlines.
   var grid_color = "#000000"
   // params.hasOwnProperty("grid_color")
@@ -1999,7 +2009,54 @@ for (i = 0; i < n_axes; i++) {
 
 }
 
+function axis_labels(plot,tick_geom,axis_tick_values){
+  //labels
+if(plot.axis_ticks_label_group){
+  plot.scene.remove(plot.axis_ticks_label_group)
+  for (const label of plot.axis_ticks_label_group.children){
+		label.geometry.dispose()
+		label.material.dispose()
+	}
+  delete plot.axis_ticks_label_group;
+} 
+  plot.axis_ticks_label_group = new THREE.Group();
+  plot.scene.add(plot.axis_ticks_label_group);
+  var text_material = new THREE.LineBasicMaterial({ color: "#000000" });
+  var loader = new THREE.FontLoader();
+  const x_range = tick_geom[0][0][tick_geom[0][0].length-1].x-tick_geom[0][0][1].x
+  const text_size = x_range/40
+  loader.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', function(font) {
+    const label_gap = 0.1
+    for (let i=0; i<3;i++){
+      let k = 1
+      for (let j=0; j<axis_tick_values[i].length;j++){
+        let label_text = axis_tick_values[i][j]
+        let label_coord = tick_geom[i][0][k]
+        k+=2
+        var geometry = new THREE.TextGeometry(label_text.toString(), {
+          font: font,
+          size: text_size,
+          height: 0.0005,
+        });
+        geometry.computeBoundingBox()
+        const text_box=geometry.boundingBox 
+        const width = text_box.max.y-text_box.min.y
+        const height = text_box.max.x-text_box.min.x
+        let mesh = new THREE.Mesh(geometry, text_material);
 
+        if (i===0){
+          mesh.position.set(label_coord.x-(width/2),label_coord.y-label_gap ,label_coord.z )
+        } else if (i===1){
+          mesh.position.set(label_coord.x-label_gap,label_coord.y-(height/2),label_coord.z )
+        } else if (i ===2){
+          mesh.position.set(label_coord.x-width,label_coord.y-height,label_coord.z )
+        }   
+        plot.axis_ticks_label_group.add(mesh);
+      }
+    }
+  })
+
+}
 
 export {
   update_labels,
