@@ -1,5 +1,7 @@
 Based on http://pappubahry.com/three_d/
 
+See also: https://github.com/equinor/mapviz
+
 ## Functionalities
 
  - [x] Plot surface grid data using Three.js 
