@@ -25,7 +25,7 @@ import {
 	basic_plot_setup,
 	basic_plot_listeners,
 	custom_plot_listeners,
-} from './three_d.js'
+} from './main.js'
 import * as THREE from 'https://cdn.skypack.dev/three@0.129.0';
 
 

@@ -14,7 +14,7 @@ import {
 	check_webgl_fallback,
 	basic_plot_setup,
 	basic_plot_listeners,
-	custom_plot_listeners,} from './three_d.js'
+	custom_plot_listeners,} from './main.js'
 import { get_current_camera } from './camera.js'
 import {
     update_labels,

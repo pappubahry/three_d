@@ -1,7 +1,7 @@
 import {get_current_camera, update_fov_from_ortho} from './camera.js';
 
 import {update_labels,update_gridlines,update_axes,get_scale_factor} from './display.js';
-import {tau,rad2deg,update_render} from './three_d.js'
+import {tau,rad2deg,update_render} from './main.js'
 import * as d3 from "https://cdn.skypack.dev/d3@7";
 import * as THREE from 'https://cdn.skypack.dev/three@0.129.0';
 

@@ -1,5 +1,4 @@
-import {make_surface} from './src/three_d.js'
-import {hide_surface} from './src/surface.js'
+
 function init_plot() {
  //check WebGL
  let canvas_test = document.createElement("canvas");

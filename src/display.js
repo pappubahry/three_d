@@ -1,7 +1,7 @@
 import { switch_camera_type ,get_current_camera} from "./camera.js";
 import {css_color_to_hex,hex_to_css_color,hex_to_rgb_obj} from './color.js'
 import {surrounding_surface_quads,surrounding_mesh_segments} from './surface.js'
-import { tau,rad2deg } from "./three_d.js";
+import { tau,rad2deg } from "./main.js";
 import * as d3 from "https://cdn.skypack.dev/d3@7";
 import * as THREE from 'https://cdn.skypack.dev/three@0.129.0';
 function update_labels(plot, start_i, end_i) {
@@ -2024,7 +2024,7 @@ if(plot.axis_ticks_label_group){
   var text_material = new THREE.LineBasicMaterial({ color: "#000000" });
   var loader = new THREE.FontLoader();
   const x_range = tick_geom[0][0][tick_geom[0][0].length-1].x-tick_geom[0][0][1].x
-  const text_size = x_range/40
+  const text_size = x_range/30
   loader.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', function(font) {
     const label_gap = 0.1
     for (let i=0; i<3;i++){
@@ -2040,17 +2040,16 @@ if(plot.axis_ticks_label_group){
         });
         geometry.computeBoundingBox()
         const text_box=geometry.boundingBox 
-        const width = text_box.max.y-text_box.min.y
-        const height = text_box.max.x-text_box.min.x
+        const width = text_box.max.x-text_box.min.x
+        const height = text_box.max.y-text_box.min.y
         let mesh = new THREE.Mesh(geometry, text_material);
-
         if (i===0){
           mesh.position.set(label_coord.x-(width/2),label_coord.y-label_gap ,label_coord.z )
         } else if (i===1){
-          mesh.position.set(label_coord.x-label_gap,label_coord.y-(height/2),label_coord.z )
+          mesh.position.set(label_coord.x-label_gap-width,label_coord.y-(height/2),label_coord.z )
         } else if (i ===2){
           mesh.position.set(label_coord.x-width,label_coord.y-height,label_coord.z )
-        }   
+        } 
         plot.axis_ticks_label_group.add(mesh);
       }
     }
