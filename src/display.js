@@ -807,34 +807,35 @@ function make_axes(plot, params, append) {
     time_axis = JSON.parse(JSON.stringify(plot.time_axis));
   }
 
-  if (specify_axis_lengths) {
-    var axis_length_ratios = JSON.parse(
-      JSON.stringify(params.axis_length_ratios)
-    );
-    var max_axis_ratio = d3.max(axis_length_ratios);
-    fix_axes = true;
+  // if (specify_axis_lengths) {
+  //   var axis_length_ratios = JSON.parse(
+  //     JSON.stringify(params.axis_length_ratios)
+  //   );
+  //   var max_axis_ratio = d3.max(axis_length_ratios);
+  //   fix_axes = true;
 
-    // Poorly named:
-    same_scale = [true, true, true];
-  } else {
-    if (params.hasOwnProperty("same_scale")) {
-      same_scale = JSON.parse(JSON.stringify(params.same_scale));
-    } else {
-      same_scale = [false, false, false];
-    }
+  //   // Poorly named:
+  //   same_scale = [true, true, true];
+  // } else {
+  //   if (params.hasOwnProperty("same_scale")) {
+  //     same_scale = JSON.parse(JSON.stringify(params.same_scale));
+  //   } else {
+  //     same_scale = [false, false, false];
+  //   }
+  //   same_scale = [true, true, false]
+  //   var num_same_scales = 0;
 
-    var num_same_scales = 0;
-
-    for (i = 0; i < same_scale.length; i++) {
-      if (same_scale[i]) {
-        num_same_scales++;
-      }
-    }
-    if (num_same_scales > 1) {
-      fix_axes = true;
-    }
-  }
-
+  //   for (i = 0; i < same_scale.length; i++) {
+  //     if (same_scale[i]) {
+  //       num_same_scales++;
+  //     }
+  //   }
+  //   if (num_same_scales > 1) {
+  //     fix_axes = true;
+  //   }
+  // }
+  same_scale = [true, true, true]
+  fix_axes = true
   // if (plot.plot_type == "scatter") {
   //   if (params.hasOwnProperty("size_scale_bound")) {
   //     if (plot.size_exponent == 0) {
@@ -1099,16 +1100,20 @@ function make_axes(plot, params, append) {
   for (i = 0; i < 3; i++) {
     if (fix_axes && same_scale[i]) {
       axis_scale_factor[i] = axis_ranges[i] / max_fixed_range;
+      console.log(axis_ranges,axis_ranges[i],max_fixed_range)
+      if (i===2){
+        axis_scale_factor[i] = axis_scale_factor[i]*plot.ve
+      }
     }
 
     if (fix_axes && specify_axis_lengths) {
-
+      
       axis_scale_factor[i] = axis_length_ratios[i] / max_axis_ratio;
     }
 
     plot.ranges.push([-axis_scale_factor[i], axis_scale_factor[i]]);
   }
-
+  console.log(plot.ranges)
   // if (plot.plot_type == "scatter") {
   //   if (params.hasOwnProperty("max_point_height")) {
   //     plot.max_point_height = params.max_point_height;
@@ -1123,23 +1128,23 @@ function make_axes(plot, params, append) {
 
   var n_axes = 4;
   time_axis.push(false);
-  if (plot.plot_type == "surface") {
+  // if (plot.plot_type == "surface") {
     n_axes = 3;
-  }
+  // }
   for (i = 0; i < n_axes; i++) {
-    if (time_axis[i]) {
-      plot.scales.push(
-        d3.scaleTime().domain(plot.domains[i]).range(plot.ranges[i])
-      );
-    } else {
+    // if (time_axis[i]) {
+    //   plot.scales.push(
+    //     d3.scaleTime().domain(plot.domains[i]).range(plot.ranges[i])
+    //   );
+    // } else {
       plot.scales.push(
         d3.scaleLinear().domain(plot.domains[i]).range(plot.ranges[i])
       );
     }
-  }
-  plot.current_scale = [[-1,1], [-1,1], [-1,1]]
-  var box_geom = []
+  // }
   
+  plot.current_scale = [[-axis_scale_factor[0],axis_scale_factor[0]], [-axis_scale_factor[1],axis_scale_factor[1]], [-axis_scale_factor[2],axis_scale_factor[2]]]
+  var box_geom = []
   //var box_geom = new THREE.Geometry();
   // LineSegments draws a segment between vertices 0 and 1, 2, and 3, 4 and 5, ....
   box_geom.push(

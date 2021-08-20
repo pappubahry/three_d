@@ -103,7 +103,7 @@ function init_plot() {
 		
 		// Grid with 6 values along x, 4 values along y:
 		params.data.x = [5, 6, 7, 8, 9, 10,11,12];
-		params.data.y = [0, 0.5, 1, 1.5,2,2.5];
+		params.data.y = [0, 2, 4, 6,8,10];
 		params.name = 'miocene'
 		// z array has length 6, each entry an array of length 4:
 		params.data.z = [
@@ -133,11 +133,11 @@ function init_plot() {
     
     // Grid with 6 values along x, 4 values along y:
     params.data.x = [5, 6, 7, 8, 9, 10];
-    params.data.y = [0, 0.5, 1, 1.5];
+    params.data.y = [0, 5, 10, 15];
     params.name = 'seabed'
     // z array has length 6, each entry an array of length 4:
     params.data.z = [
-      [NaN, 11, 9.5, 10],
+      [NaN, 11, 9.5, 18],
       [10, 12, 11,  8],
       [11, 13, 11,  NaN],
       [10, 15, 12,  9],
@@ -152,6 +152,7 @@ function init_plot() {
 	// let plot = plots[i_plot];
 	var plot = {}
 	plot.mouseover = true;
+	plot.ve=1;
 	plot.mouseout=true;
 	plot.showing_mesh = true; //show grid mesh on surface
 	plot.plot_type = "surface";
