@@ -8,7 +8,7 @@ See also: https://github.com/equinor/mapviz
  - [x] Multiple surface
  - [x] Add/Remove surface
  - [ ] Update camera fov on new surface
- - [ ] Adjustable vertical exaggeration
+ - [x] Adjustable vertical exaggeration
  - [ ] Independent colour scale
  - [ ] Adjustable colour scale
  - [ ] Axis labels
