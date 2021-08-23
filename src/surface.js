@@ -252,8 +252,8 @@ function remove_surface (plot,name){
 	surf_mesh_obj.geometry.dispose()
 	surf_mesh_obj.material.dispose()
 	plot.surface_list.splice(surf_ind,1)
-
-	update_plot_bounds("remove",plot)
+	update_plot_bounds("remove",plot,surf.scaled_bound)
+	
 	resize_axes(plot)
 	update_render(plot);
 }
@@ -280,10 +280,23 @@ function update_plot_bounds (operation, plot, surf_scaled_bound){
 		plot.current_scale = [[plot_x_min,plot_x_max],[plot_y_min,plot_y_max],[plot_z_min,plot_z_max]]
 		return
 	} else if (operation === "remove"){
-		let all_x = plot.surface_list.map(surf => surf.scaled_bound[0]).flat();
-		let all_y = plot.surface_list.map(surf => surf.scaled_bound[1]).flat();
-		let all_z = plot.surface_list.map(surf => surf.scaled_bound[2]).flat();
-		plot.current_scale = [[d3.min(all_x),d3.max(all_x)],[d3.min(all_y),d3.max(all_y)],[d3.min(all_z),d3.max(all_z)]]
+		console.log(plot.surface_list)
+		let all_x = plot.surface_list.map(surf => surf.bounds.x).flat();
+		let all_y = plot.surface_list.map(surf => surf.bounds.y).flat();
+		let all_z = plot.surface_list.map(surf => surf.bounds.z).flat();
+		let rangeX = d3.max(all_x)-d3.min(all_x)
+		let rangeY = d3.max(all_y)-d3.min(all_y)
+		let rangeZ = d3.max(all_z)-d3.min(all_z)
+		let axis_ranges=[rangeX,rangeY,rangeZ]
+		let max_fixed_range = d3.max(axis_ranges.slice(0,2))
+		let axis_scale_factor = [];
+		for (let i = 0; i < 3; i++) {
+			axis_scale_factor[i] = axis_ranges[i] / max_fixed_range;
+			if (i===2){//set VE
+			  axis_scale_factor[i] = axis_scale_factor[i]*plot.ve
+			}
+		}
+		plot.current_scale = [[-axis_scale_factor[0],axis_scale_factor[0]], [-axis_scale_factor[1],axis_scale_factor[1]], [-axis_scale_factor[2],axis_scale_factor[2]]]
 		return
 	}
 }

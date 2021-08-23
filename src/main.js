@@ -27,6 +27,7 @@
 
 
 import * as THREE from 'https://cdn.skypack.dev/three@0.129.0';
+//import {GUI} from './dat.gui.module.js'
 
 import {
 	touch_start_fn,
@@ -1307,14 +1308,19 @@ function basic_plot_setup(plot, params,canvas) {
 	
 	// Following is used to see if we should render once a photosphere
 	// texture is loaded:
+	//const gui = new GUI()
+
 	plot.tried_initial_render = false;
 	
 	// First up, preparing the area.
 	//plot.container_height = plot.parent_div.offsetHeight;
 	plot.scene = new THREE.Scene();
 	plot.group_main = new THREE.Group();
+	plot.group_main.name="main"
 	plot.group_surf= new THREE.Group();
+	plot.group_surf.name="surface"
 	plot.group_mesh= new THREE.Group();
+	plot.group_mesh.name="mesh_grid"
 	plot.group_main.add(plot.group_surf);
 	plot.group_main.add(plot.group_mesh);
 	plot.scene.add(plot.group_main);

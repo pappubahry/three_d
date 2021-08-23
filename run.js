@@ -102,7 +102,7 @@ function init_plot() {
 		params.data = {};
 		
 		// Grid with 6 values along x, 4 values along y:
-		params.data.x = [5, 6, 7, 8, 9, 10,11,12];
+		params.data.x = [2, 6, 7, 8, 9, 10,11,12];
 		params.data.y = [0, 2, 4, 6,8,10];
 		params.name = 'miocene'
 		// z array has length 6, each entry an array of length 4:
@@ -137,7 +137,7 @@ function init_plot() {
     params.name = 'seabed'
     // z array has length 6, each entry an array of length 4:
     params.data.z = [
-      [NaN, 11, 9.5, 18],
+      [NaN, 11, 5, 18],
       [10, 12, 11,  8],
       [11, 13, 11,  NaN],
       [10, 15, 12,  9],
