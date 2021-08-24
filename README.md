@@ -12,7 +12,7 @@ See also: https://github.com/equinor/mapviz
  - [ ] Independent colour scale
  - [ ] Adjustable colour scale
  - [ ] Axis labels
- - [ ] Coordinates label
+ - [x] Coordinates label
  - [ ] Touch support
 
 ## What is new
