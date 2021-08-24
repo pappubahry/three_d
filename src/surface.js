@@ -104,6 +104,7 @@ function check_surface_data_sizes(params) {
 
 function make_surface(plot, params,canvas) {
 	//if (!check_webgl_fallback(params)) { return; }
+	if (!plot.canvas){plot.canvas = canvas}
 	plot.surface_list = [];
 	plot.surface_nr = 1;
 	let surf ={nr:plot.surface_nr,name:params.name,scaled_bound:[[-1,1], [-1,1], [-1,1]]}
@@ -125,9 +126,9 @@ function make_surface(plot, params,canvas) {
 	const p_z = flatz.filter(function (value) {
 			return !Number.isNaN(value)})
 	surf.bounds={x:[Math.min(...p_x),Math.max(...p_x)],y:[Math.min(...p_y),Math.max(...p_y)],z:[Math.min(...p_z),Math.max(...p_z)]}
-	basic_plot_setup(plot,params,canvas);
+	basic_plot_setup(plot,params,plot.canvas);
 	make_axes(plot, params);
-	
+	surf.scaled_bound = plot.current_scale //assign to the first surface
 	plot.surface_material = new THREE.ShaderMaterial({
 		"vertexShader":   shader_surface_vertex,
 		"fragmentShader": shader_surface_fragment,
@@ -135,28 +136,8 @@ function make_surface(plot, params,canvas) {
 	});
 	
 	let mesh_color;
-	//color of grid lines on mesh surface
 	mesh_color = new THREE.Vector4(1, 1, 1, 1);
-	// if ("mesh_color" in params) {
-	// 	mesh_color = params.mesh_color;
-		
-	// 	if (typeof(mesh_color) == "string") {
-	// 		mesh_color = css_color_to_hex(mesh_color);
-	// 	}
-	// 	let rgb = hex_to_rgb_obj(mesh_color);
-	// 	mesh_color = new THREE.Vector4(rgb.r, rgb.g, rgb.b, 1.0);
-	// } else {
-	// 	console.log(plot.bg_color_hex)
-	// 	// Set default mesh colour to black or white depending
-	// 	// on the background colour.
-	// 	let bg_color_obj = hex_to_rgb_obj(plot.bg_color_hex);
-	// 	let sum_bg = bg_color_obj.r + bg_color_obj.g + bg_color_obj.b;
-	// 	if (sum_bg > 1.5) {
-	// 		mesh_color = new THREE.Vector4(0, 0, 0, 1);
-	// 	} else {
-	// 		mesh_color = new THREE.Vector4(1, 1, 1, 1);
-	// 	}
-	// }
+
 	
 	let use_const_color = 1; //mesh grid constant color
 	
@@ -184,7 +165,8 @@ function make_surface(plot, params,canvas) {
 }
 
 function add_surface(plot, params){
-	let size_checks = check_surface_data_sizes(params);
+	if (plot.surface_list.length>0){
+			let size_checks = check_surface_data_sizes(params);
 	if (!size_checks.data) { return; }
 	if (plot.surface_list.map(surf => surf.name).includes(params.name)) {return} //no duplicated name
 	plot.show_box =true
@@ -204,6 +186,7 @@ function add_surface(plot, params){
 	plot.show_box =true
 	plot.show_ticks = true
 	let surf ={nr:plot.surface_nr,name:params.name}
+	
 	var flatz = params.data.z.flat()
 	const p_x = params.data.x.filter(function (value) {
 		return !Number.isNaN(value)})
@@ -218,43 +201,71 @@ function add_surface(plot, params){
 	surf.scaled_bound=surf_scaled_bound(temp_obj.plot_locations)
 	update_plot_bounds("add",plot,surf.scaled_bound)
 	make_mesh_points(plot,plot.surface_nr, params, temp_obj.plot_locations, temp_obj.null_points);
+	plot.surface_nr +=1
 	resize_axes(plot)
+	} else {
+		make_surface(plot,params)
+		
+	}
 	update_render(plot);
 }
 
 function remove_surface (plot,name){
 	let surf = plot.surface_list.find(surf => surf.name === name);
 	if (surf === undefined) {return} //surface not found
-	let surf_ind = plot.surface_list.findIndex(surf => surf.name === name);
-	plot.show_box =true
-	toggle_box(plot)
-	plot.show_ticks =true
-	toggle_ticks(plot)
-	plot.axis_box.geometry.dispose()
-	plot.axis_box.material.dispose()
-	for (const ticks of plot.axis_ticks_group.children){
-		ticks.geometry.dispose()
-		ticks.material.dispose()
-	}
-	for (let i = 0; i < 3; i++){
-		plot.scene.remove(plot.grid_lines_upper[i]);
-		plot.scene.remove(plot.grid_lines_lower[i]);
-	}
-	plot.show_box =true
-	plot.show_ticks = true
-
-	const surf_obj=plot.scene.getObjectByProperty( "uuid",surf.surface.uuid )
-	plot.group_surf.remove(surf_obj)
-	surf_obj.geometry.dispose()
-	surf_obj.material.dispose()
-	const surf_mesh_obj =plot.scene.getObjectByProperty( "uuid",surf.surface_mesh.uuid )
-	plot.group_mesh.remove(surf_mesh_obj)
-	surf_mesh_obj.geometry.dispose()
-	surf_mesh_obj.material.dispose()
-	plot.surface_list.splice(surf_ind,1)
-	update_plot_bounds("remove",plot,surf.scaled_bound)
+	if (plot.surface_list.length >1){
+		let surf_ind = plot.surface_list.findIndex(surf => surf.name === name);
+		plot.show_box =true
+		toggle_box(plot)
+		plot.show_ticks =true
+		toggle_ticks(plot)
+		plot.axis_box.geometry.dispose()
+		plot.axis_box.material.dispose()
+		for (const ticks of plot.axis_ticks_group.children){
+			ticks.geometry.dispose()
+			ticks.material.dispose()
+		}
+		for (let i = 0; i < 3; i++){
+			plot.scene.remove(plot.grid_lines_upper[i]);
+			plot.scene.remove(plot.grid_lines_lower[i]);
+		}
+		plot.show_box =true
+		plot.show_ticks = true
 	
-	resize_axes(plot)
+		const surf_obj=plot.scene.getObjectByProperty( "uuid",surf.surface.uuid )
+		plot.group_surf.remove(surf_obj)
+		surf_obj.geometry.dispose()
+		surf_obj.material.dispose()
+		if(plot.showing_mesh){
+			const surf_mesh_obj =plot.scene.getObjectByProperty( "uuid",surf.surface_mesh.uuid )
+			plot.group_mesh.remove(surf_mesh_obj)
+			surf_mesh_obj.geometry.dispose()
+			surf_mesh_obj.material.dispose()
+		}
+		plot.surface_list = plot.surface_list.filter((value)=>{ return value.name != name})
+		update_plot_bounds("remove",plot)
+		
+		resize_axes(plot)
+
+	} else {
+		let surf_ind = plot.surface_list.findIndex(surf => surf.name === name);
+		
+	
+		const surf_obj=plot.scene.getObjectByProperty( "uuid",surf.surface.uuid )
+		plot.group_surf.remove(surf_obj)
+		surf_obj.geometry.dispose()
+		surf_obj.material.dispose()
+		if(plot.showing_mesh){
+			const surf_mesh_obj =plot.scene.getObjectByProperty( "uuid",surf.surface_mesh.uuid )
+			plot.group_mesh.remove(surf_mesh_obj)
+			surf_mesh_obj.geometry.dispose()
+			surf_mesh_obj.material.dispose()
+		}
+	
+		plot.surface_list = plot.surface_list.filter((value)=>{ return value.name != name})
+		
+		
+	}
 	update_render(plot);
 }
 
@@ -271,6 +282,7 @@ function surf_scaled_bound (surf_scaled_coord){
 
 function update_plot_bounds (operation, plot, surf_scaled_bound){
 	if (operation === "add"){
+		console.log(plot.current_scale)
 		let plot_x_max = ((surf_scaled_bound[0][1]>plot.current_scale[0][1])?surf_scaled_bound[0][1]:plot.current_scale[0][1])
 		let plot_x_min = ((surf_scaled_bound[0][0]<plot.current_scale[0][0])?surf_scaled_bound[0][0]:plot.current_scale[0][0])
 		let plot_y_max = ((surf_scaled_bound[1][1]>plot.current_scale[1][1])?surf_scaled_bound[1][1]:plot.current_scale[1][1])
@@ -278,25 +290,22 @@ function update_plot_bounds (operation, plot, surf_scaled_bound){
 		let plot_z_max = ((surf_scaled_bound[2][1]>plot.current_scale[2][1])?surf_scaled_bound[2][1]:plot.current_scale[2][1])
 		let plot_z_min = ((surf_scaled_bound[2][0]<plot.current_scale[2][0])?surf_scaled_bound[2][0]:plot.current_scale[2][0])
 		plot.current_scale = [[plot_x_min,plot_x_max],[plot_y_min,plot_y_max],[plot_z_min,plot_z_max]]
+		console.log(plot.current_scale)
 		return
 	} else if (operation === "remove"){
+		console.log(plot.current_scale)
 		console.log(plot.surface_list)
-		let all_x = plot.surface_list.map(surf => surf.bounds.x).flat();
-		let all_y = plot.surface_list.map(surf => surf.bounds.y).flat();
-		let all_z = plot.surface_list.map(surf => surf.bounds.z).flat();
-		let rangeX = d3.max(all_x)-d3.min(all_x)
-		let rangeY = d3.max(all_y)-d3.min(all_y)
-		let rangeZ = d3.max(all_z)-d3.min(all_z)
-		let axis_ranges=[rangeX,rangeY,rangeZ]
-		let max_fixed_range = d3.max(axis_ranges.slice(0,2))
-		let axis_scale_factor = [];
-		for (let i = 0; i < 3; i++) {
-			axis_scale_factor[i] = axis_ranges[i] / max_fixed_range;
-			if (i===2){//set VE
-			  axis_scale_factor[i] = axis_scale_factor[i]*plot.ve
-			}
-		}
-		plot.current_scale = [[-axis_scale_factor[0],axis_scale_factor[0]], [-axis_scale_factor[1],axis_scale_factor[1]], [-axis_scale_factor[2],axis_scale_factor[2]]]
+		let all_x = plot.surface_list.map(surf => surf.scaled_bound[0]).flat();
+		let all_y = plot.surface_list.map(surf => surf.scaled_bound[1]).flat();
+		let all_z = plot.surface_list.map(surf => surf.scaled_bound[2]).flat();
+		let maxX=d3.max(all_x)
+		let minX=d3.min(all_x)
+		let maxY=d3.max(all_y)
+		let minY=d3.min(all_y)
+		let maxZ=d3.max(all_z)
+		let minZ=d3.min(all_z)
+		plot.current_scale=[[minX,maxX],[minY,maxY],[minZ,maxZ]]
+		console.log(plot.current_scale)
 		return
 	}
 }

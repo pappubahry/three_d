@@ -1145,11 +1145,8 @@ plot.grid_color = "#000000"
       if (i===2){//set VE
         axis_scale_factor[i] = axis_scale_factor[i]*plot.ve
       }
-    
   }
-  console.log(axis_ranges)
   plot.current_scale = [[-axis_scale_factor[0],axis_scale_factor[0]], [-axis_scale_factor[1],axis_scale_factor[1]], [-axis_scale_factor[2],axis_scale_factor[2]]]
-
 
 
 
@@ -1217,9 +1214,12 @@ if(plot.axis_ticks_label_group){
   var text_material = new THREE.LineBasicMaterial({ color: "#000000" });
   var loader = new THREE.FontLoader();
   const z_range = tick_geom[2][0][tick_geom[2][0].length-1].z-tick_geom[2][0][1].z
-  //const y_range = tick_geom[1][0][tick_geom[1][0].length-1].y-tick_geom[1][0][1].y
-  //const x_range = tick_geom[0][0][tick_geom[0][0].length-1].x-tick_geom[0][0][1].x
-  const text_size = z_range/30
+  const y_range = tick_geom[1][0][tick_geom[1][0].length-1].y-tick_geom[1][0][1].y
+  const x_range = tick_geom[0][0][tick_geom[0][0].length-1].x-tick_geom[0][0][1].x
+
+  const largestRange = d3.max([z_range,y_range,x_range])
+  
+  const text_size = largestRange/30
   loader.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', function(font) {
     const label_gap = 0.1
     for (let i=0; i<3;i++){
