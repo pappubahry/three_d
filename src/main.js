@@ -25,7 +25,7 @@
  * David Barry, 2018-07-06.
  */
 
-
+import * as d3 from "https://cdn.skypack.dev/d3@7";
 import * as THREE from 'https://cdn.skypack.dev/three@0.129.0';
 //import {GUI} from './dat.gui.module.js'
 
@@ -118,7 +118,19 @@ function show_photosphere(plot) {
 	plot.scene.add(plot.photosphere);
 }
 
+function add_gui(plot){
+	if (plot.cube){
+		plot.scene.remove(plot.cube)
+	}
 
+	plot.scene.add(plot.cube)
+	console.log(get_current_camera(plot).position)
+	plot.cube.position.copy( get_current_camera(plot).position );
+	plot.cube.rotation.copy( get_current_camera(plot).rotation );
+	console.log(get_current_camera(plot).position)
+	plot.cube.updateMatrix();
+	plot.cube.translateZ( - 10 );
+}
 
 
 function update_render(plot) {
@@ -1230,7 +1242,6 @@ function basic_plot_setup(plot, params,canvas) {
 	// Following is used to see if we should render once a photosphere
 	// texture is loaded:
 	//const gui = new GUI()
-
 	plot.tried_initial_render = false;
 	
 	// First up, preparing the area.
@@ -1246,6 +1257,7 @@ function basic_plot_setup(plot, params,canvas) {
 	plot.group_main.add(plot.group_mesh);
 	plot.scene.add(plot.group_main);
 	canvas.style = { width: 0, height: 0 }
+	plot.canvas= canvas
 	plot.renderer = new THREE.WebGLRenderer({"canvas":canvas,"antialias": true});
 	//let pixelRatio=window.devicePixelRatio ? window.devicePixelRatio : 1
 	plot.renderer.setPixelRatio(plot.pixelRatio);
@@ -1410,8 +1422,12 @@ function basic_plot_setup(plot, params,canvas) {
 		aspect,
 		0.01,
 		frustum_far);
-	
-	
+	plot.persp_camera2 = new THREE.PerspectiveCamera(
+		plot.init_fov,
+		aspect,
+		0.01,
+		frustum_far);
+
 	plot.init_ortho_top = ortho_top;
 	plot.init_ortho_right = ortho_right;
 	
@@ -1473,7 +1489,10 @@ function basic_plot_setup(plot, params,canvas) {
 		});
 	}
 }
-
+function setVE(plot,ve){
+	plot.scene.scale.set(1,1,ve);
+	update_render(plot);
+}
 function add_photosphere(plot, params) {
 	plot.photosphere_texture.minFilter = THREE.NearestFilter;
 	
@@ -1495,6 +1514,17 @@ function add_photosphere(plot, params) {
 		// loaded, so render again:
 		update_render(plot);
 	}
+}
+
+function resizeCanvas(plot, newSize){
+	let width = newSize.width*plot.plotWindowRatio.width
+	let height = newSize.height*plot.plotWindowRatio.height
+	let camera =get_current_camera(plot)
+	camera.aspect=width/height;
+	camera.updateProjectionMatrix()
+	plot.renderer.setSize( width, height );
+	plot.windowSize=newSize
+	update_render(plot);
 }
 
 function basic_plot_listeners(plot, i_plot,params) {
@@ -1654,4 +1684,6 @@ export {get_i_plot,
 	mouse_zoom_wrapper,
 	mouse_move_wrapper,
 	mouse_out_wrapper,
+	resizeCanvas,
+	setVE
 }

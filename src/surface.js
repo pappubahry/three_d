@@ -158,11 +158,14 @@ function make_surface(plot, params,canvas) {
 	make_mesh_points(plot,plot.surface_nr, params, temp_obj.plot_locations, temp_obj.null_points);
 	
 	custom_plot_listeners(plot, params);
+
 	update_render(plot);
 	plot.tried_initial_render = true;
 	plot.surface_nr +=1
 	//basic_plot_listeners(plot, i_plot,params);
 }
+
+
 
 function add_surface(plot, params){
 	if (plot.surface_list.length>0){
