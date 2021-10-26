@@ -570,11 +570,11 @@ function mouse_zoom(event, plot) {
           plot.persp_camera.fov *= zoom_factor;
 
           if (plot.persp_camera.fov > plot.max_fov) {
+
             plot.persp_camera.fov = plot.max_fov;
           }
         }
       }
-
       px2rad =
         plot.persp_camera.fov / (plot.height * rad2deg);
       scale_ratio = px2rad / old_px2rad;
@@ -639,6 +639,7 @@ function mouse_zoom(event, plot) {
           rad2deg *
           2;
         if (theta > plot.max_fov) {
+
           temp_top =
             plot.camera_distance_scale *
             Math.tan(plot.max_fov / (2 * rad2deg));
@@ -741,7 +742,7 @@ function mouse_move_wrapper(event,plot) {
     set_normed_mouse_coords(event, plot);
   
     var i;
-    if (plot.mouse_operation == "rotate") {
+    if (plot.mouse_operation == "rotate" && plot.view_type == "perspective") {
       var perc_horiz = plot.mouse.x;
       var perc_vert = -plot.mouse.y;
   

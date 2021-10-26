@@ -37,4 +37,12 @@ self.onmessage = function (event) {
     if (event.data.VE){
         three_d.setVE(plot,event.data.VE)
     }
+    if (event.data.view2D === "2D view"){
+        three_d.view2D(plot);
+        self.postMessage({view:"2D"})
+    }
+    if (event.data.view2D === "3D view"){
+        three_d.view3D(plot);
+        self.postMessage({view:"3D"})
+    }
 }

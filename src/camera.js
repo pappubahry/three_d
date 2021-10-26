@@ -30,11 +30,11 @@ function update_fov_from_ortho(plot) {
 
 
 
-function switch_camera_type(plot) {
+function switch_camera_type(plot,type) {
   var aspect = plot.width / plot.height;
   var left, top, theta;
 
-  if (plot.view_type == "perspective") {
+  if (type === 'orthographic') {
     theta = plot.persp_camera.fov / 2;
     top = plot.camera_distance_scale * Math.tan(theta / rad2deg);
     left = top * aspect;
@@ -56,7 +56,7 @@ function switch_camera_type(plot) {
     if (plot.geom_type == "point") {
       plot.point_material.uniforms.is_perspective.value = 0.0;
     }
-  } else {
+  } else if (type ==='perspective') {
     update_fov_from_ortho(plot);
 
     plot.persp_camera.position.copy(
@@ -91,6 +91,7 @@ function reset_camera_wrapper(plot, first_init, angles, origin) {
 }
 
 function reset_camera(plot, first_init, angles, origin) {
+
 	var i;
 	var lon = angles[0];
 	var lat = angles[1];
@@ -129,28 +130,6 @@ function reset_camera(plot, first_init, angles, origin) {
 	}
 	
 	if (!first_init) {
-		for (i = 0; i < plot.axis_text_planes.length; i++) {
-			plot.axis_text_planes[i].rotation.copy(get_current_camera(plot).rotation);
-			plot.axis_text_planes[i].scale.x = plot.init_axis_title_scale;
-			plot.axis_text_planes[i].scale.y = plot.init_axis_title_scale;
-		}
-		
-		for (i = 0; i < plot.tick_text_planes.length; i++) {
-			plot.tick_text_planes[i].rotation.copy(get_current_camera(plot).rotation);
-			plot.tick_text_planes[i].scale.x = plot.init_tick_scale;
-			plot.tick_text_planes[i].scale.y = plot.init_tick_scale;
-		}
-		
-		if (plot.have_any_labels) {
-			update_labels(plot);
-			
-			for (i = 0; i < plot.points.length; i++) {
-				if (plot.labels[i] !== null) {
-					plot.labels[i].scale.x = plot.init_label_scale;
-					plot.labels[i].scale.y = plot.init_label_scale;
-				}
-			}
-		}
 		
 		if (plot.geom_type == "quad") {
 			for (i = 0; i < plot.points.length; i++) {
@@ -159,16 +138,7 @@ function reset_camera(plot, first_init, angles, origin) {
 			}
 		}
 		
-		if (plot.show_grid) {
-			update_gridlines(plot);
-		}
-		
-		if (plot.dynamic_axis_labels) {
-			update_axes(plot);
-		}
-		
-		get_current_camera(plot).updateProjectionMatrix();
-		update_render(plot);
+
 	} else {
 		get_current_camera(plot).updateProjectionMatrix();
 	}

@@ -139,12 +139,24 @@ function init_plot() {
 		w.postMessage({VE:this.value})
 	}
 	sliderVal.innerHTML=slider.value
-	
-
+	//2d
+	let view2d = document.createElement("button");
+	view2d.innerHTML = "2D view";
+	toggle_div.appendChild(view2d);
+	view2d.onclick = async function setView2d() {
+		w.postMessage({ view2D: view2d.innerHTML })
+	}
 
 	toggle_div.appendChild(slider);
 	toggle_div.appendChild(sliderVal)
-
+	w.onmessage =function (event) {
+		if (event.data.view === '2D'){
+			view2d.innerHTML="3D view"
+		}
+		if (event.data.view === '3D'){
+			view2d.innerHTML="2D view"
+		}
+	}
 	var mouse_events = ['mousedown', 'mouseup', 'mouseout', 'mousemove', 'wheel', 'touchstart', 'touchmove', 'touchend']
 	mouse_events.forEach((events_name) => {
 		canvas.addEventListener(events_name, (e) => {
